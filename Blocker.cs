@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace FreeBlock;
@@ -24,7 +25,7 @@ public static class Blocker
     {
         using StreamWriter file = File.AppendText(HostsPath);
 
-        foreach (string url in blockList.urlList)
+        foreach (string url in blockList.UrlList)
             file.WriteLine($"0.0.0.0 {url}");
 
         RefreshDns();
@@ -32,7 +33,7 @@ public static class Blocker
 
     public static void Unblock(BlockList blockList)
     {
-        string[] toMatch = blockList.urlList.Select(e => $"0.0.0.0 {e}").ToArray();
+        string[] toMatch = blockList.UrlList.Select(e => $"0.0.0.0 {e}").ToArray();
         var lines = File.ReadLines(HostsPath).ToArray();
         using StreamWriter file = new(HostsPath);
         
@@ -60,7 +61,16 @@ public static class Blocker
         else throw new PlatformNotSupportedException("Only Linux, macOS and Windows are supported");
     }
 
-    private static void Run(string command, string arguments) =>
-        Task.Run(() => System.Diagnostics.Process.Start(command, arguments));
+    private static void Run(string command, string arguments)
+    {
+        Task.Run(() => {
+            var process = new Process();
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.FileName = command;
+            process.StartInfo.Arguments = arguments;
+            process.Start();
+        });
+    }
 
 }

@@ -1,51 +1,53 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace FreeBlock;
 
 public static class ConfigProvider
 {
 
-    [field: MaybeNull] private static string ConfigPath
+    public static List<BlockList> BlockLists { get; }
+    private static string ConfigDirectory
     {
         get
         {
-            if (field != null) return field;
-            
-            if (OperatingSystem.IsLinux()) field = ".config/freeblock/config.json";
-            else if (OperatingSystem.IsMacOS()) field = "Library/Preferences/FreeBlock/config.json";
-            else if (OperatingSystem.IsWindows()) field = "AppData/Roaming/FreeBlock/config.json";
+            if (OperatingSystem.IsLinux()) field = ".config/freeblock";
+            else if (OperatingSystem.IsMacOS()) field = "Library/Preferences/FreeBlock";
+            else if (OperatingSystem.IsWindows()) field = "AppData/Roaming/FreeBlock";
             else throw new PlatformNotSupportedException("Only Linux, macOS and Windows are supported");
             
-            field = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), field);
-            return field;
-        }
+            return Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), field);
+        }   
     }
+    private static string ConfigFile => Path.Join(ConfigDirectory, "config.json");
 
-    private static Dictionary<string, object> _values;
+    private const string DEFAULT_DATA = "{\"lists\": {}}";
+    private static JObject _values;
 
     static ConfigProvider()
     {
-        if (!Path.Exists(ConfigPath))
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-            using StreamWriter file = File.CreateText(ConfigPath);
+        // Create file if missing
+        if (!Path.Exists(ConfigFile)) {
+            Directory.CreateDirectory(Path.GetDirectoryName(ConfigFile)!);
+            _values = new JObject();
             
-            file.WriteLine("{}");
-            return;
+            using StreamWriter file = File.CreateText(ConfigFile);
+            file.WriteLine(DEFAULT_DATA);
         }
-
-        _values = JsonConvert.DeserializeObject<Dictionary<string, object>>(File.ReadAllText(ConfigPath)) ?? [];
+        
+        // Load values
+        _values = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(ConfigFile))!;
+        BlockLists = _values["lists"]!.ToObject<List<JObject>>()!.Select(e => e.ToObject<BlockList>()).ToList()!;
     }
 
-    public static object Get(string key)
-    {
-        return _values[key];
-    }
+    public static object? Get(string key) => _values[key];
+    public static T? Get<T>(string key) where T : class => _values.SelectToken(key)?.ToObject<T>();
+    public static void Set(string key, object value) => _values[key] = JToken.FromObject(value);
 
-    public static void Set(string key, object value)
+    public static void Save()
     {
-        _values[key] = value;
+        _values["lists"] = JToken.FromObject(BlockLists);
+        File.WriteAllText(ConfigFile, _values.ToString());   
     }
     
 }
