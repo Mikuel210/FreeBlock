@@ -1,26 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "/home/duna/Code/C#/FreeBlock/FreeBlock.csproj": {}
+    "C:\\Users\\loran\\OneDrive\\Escritorio\\FreeBlock\\FreeBlock.csproj": {}
   },
   "projects": {
-    "/home/duna/Code/C#/FreeBlock/FreeBlock.csproj": {
+    "C:\\Users\\loran\\OneDrive\\Escritorio\\FreeBlock\\FreeBlock.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/duna/Code/C#/FreeBlock/FreeBlock.csproj",
+        "projectUniqueName": "C:\\Users\\loran\\OneDrive\\Escritorio\\FreeBlock\\FreeBlock.csproj",
         "projectName": "FreeBlock",
-        "projectPath": "/home/duna/Code/C#/FreeBlock/FreeBlock.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/home/duna/Code/C#/FreeBlock/obj/",
+        "projectPath": "C:\\Users\\loran\\OneDrive\\Escritorio\\FreeBlock\\FreeBlock.csproj",
+        "packagesPath": "C:\\Users\\pllor\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\loran\\OneDrive\\Escritorio\\FreeBlock\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\pllor\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -39,11 +38,17 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
+          "dependencies": {
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.4, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -60,7 +65,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.105/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
