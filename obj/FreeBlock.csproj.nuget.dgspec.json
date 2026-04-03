@@ -10,11 +10,11 @@
         "projectUniqueName": "/home/duna/Code/C#/FreeBlock/FreeBlock.csproj",
         "projectName": "FreeBlock",
         "projectPath": "/home/duna/Code/C#/FreeBlock/FreeBlock.csproj",
-        "packagesPath": "/home/duna/.nuget/packages/",
+        "packagesPath": "/root/.nuget/packages/",
         "outputPath": "/home/duna/Code/C#/FreeBlock/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/duna/.nuget/NuGet/NuGet.Config"
+          "/root/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
