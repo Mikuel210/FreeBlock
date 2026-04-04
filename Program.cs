@@ -28,6 +28,12 @@ switch (args[0])
         Unblock(args[1]);
 
         break;
+    
+    case "lock":
+        if (args.Length < 3) return;
+        Lock(args[1], args[2]);
+
+        break;
 }
 
 void AddList()
@@ -37,7 +43,7 @@ void AddList()
     Console.Write("List name: ");
     string name = Console.ReadLine()!.Trim();
     
-    if (ConfigProvider.BlockLists.Select(e => e.Name.ToLower()).Contains(name.ToLower())) {
+    if (Config.BlockLists.Select(e => e.Name.ToLower()).Contains(name.ToLower())) {
         Console.WriteLine("Name already in use");
         Console.WriteLine();
 
@@ -49,10 +55,12 @@ void AddList()
 
     while (true) {
         Console.Write("Add website (empty to end): ");
-        string input = Console.ReadLine()!;
+        string input = Console.ReadLine()!.Trim();
+        if (input == string.Empty) break;
         
-        if (input.Trim() == string.Empty) break;
-        urlList.Add(input);   
+        if (input.StartsWith("https://")) input = input.Remove(0, 8);
+        if (input.StartsWith("http://")) input = input.Remove(0, 7);
+        urlList.Add(input);
     }
     
     // Add list
@@ -61,14 +69,16 @@ void AddList()
         UrlList = urlList
     };
     
-    ConfigProvider.BlockLists.Add(list);
-    ConfigProvider.Save();
+    Config.BlockLists.Add(list);
+    Blocker.UpdateBlock();
+    Config.Save();
+    
     Console.WriteLine("List created successfully");
 }
 
 void RemoveList(string name)
 {
-    var list = ConfigProvider.BlockLists.FirstOrDefault(e => e.Name.ToLower() == name.Trim().ToLower());
+    var list = Config.BlockLists.FirstOrDefault(e => e.Name.ToLower() == name.Trim().ToLower());
     
     if (list == null) {
         Console.WriteLine($"List {name.Trim()} not found");
@@ -76,24 +86,25 @@ void RemoveList(string name)
     }
 
     list.Enabled = false;
-    ConfigProvider.BlockLists.Remove(list);
-    ConfigProvider.Save();
+    Config.BlockLists.Remove(list);
+    Blocker.UpdateBlock();
+    Config.Save();
     
     Console.WriteLine($"Removed list: {list.Name}");
 }
 
 void ShowStatus()
 {
-    if (ConfigProvider.BlockLists.Count == 0)
+    if (Config.BlockLists.Count == 0)
         Console.WriteLine("No lists found");
     
-    foreach (var list in ConfigProvider.BlockLists)
-        Console.WriteLine((list.Enabled ? "🟢" : "🔴") + $" {list.Name}");
+    foreach (var list in Config.BlockLists)
+        Console.WriteLine((list.Enabled ? "🟢" : "🔴") + $" {list.Name} " + (list.Locked ? $"(🔒 {list.UnlockTime})" : ""));
 }
 
 void Block(string name)
 {
-    var list = ConfigProvider.BlockLists.FirstOrDefault(e => e.Name.ToLower() == name.Trim().ToLower());
+    var list = Config.BlockLists.FirstOrDefault(e => e.Name.ToLower() == name.Trim().ToLower());
     
     if (list == null) {
         Console.WriteLine($"List {name.Trim()} not found");
@@ -101,22 +112,53 @@ void Block(string name)
     }
     
     list.Enabled = true;
-    ConfigProvider.Save();
+    Blocker.UpdateBlock();
+    Config.Save();
     
     Console.WriteLine($"Blocked list: {list.Name}");
 }
 
 void Unblock(string name)
 {
-    var list = ConfigProvider.BlockLists.FirstOrDefault(e => e.Name.ToLower() == name.Trim().ToLower());
+    var list = Config.BlockLists.FirstOrDefault(e => e.Name.ToLower() == name.Trim().ToLower());
     
     if (list == null) {
         Console.WriteLine($"List {name.Trim()} not found");
         return;
     }
+
+    if (list.Locked)
+    {
+        Console.WriteLine($"List {list.Name} is locked until {list.UnlockTime}");
+        return;
+    }
     
     list.Enabled = false;
-    ConfigProvider.Save();
+    Blocker.UpdateBlock();
+    Config.Save();
     
     Console.WriteLine($"Unblocked list: {list.Name}");
+}
+
+void Lock(string name, string minutesString)
+{
+    var list = Config.BlockLists.FirstOrDefault(e => e.Name.ToLower() == name.Trim().ToLower());
+    
+    if (list == null) {
+        Console.WriteLine($"List {name.Trim()} not found");
+        return;
+    }
+
+    if (!int.TryParse(minutesString.Trim(), out int minutes))
+    {
+        Console.WriteLine($"Minutes must be an integer");
+        return;   
+    }
+    
+    list.Enabled = true;
+    list.UnlockTime = DateTime.Now.AddMinutes(minutes);
+    Blocker.UpdateBlock();
+    Config.Save();
+    
+    Console.WriteLine($"List locked for {minutes} minutes: {list.Name}");
 }

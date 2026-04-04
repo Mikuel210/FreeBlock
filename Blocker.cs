@@ -6,43 +6,41 @@ namespace FreeBlock;
 public static class Blocker
 {
     
-    [field: MaybeNull] private static string HostsPath
+    private static string[] BlockedUrls
     {
         get
         {
-            if (field != null) return field;
+            List<string> blockedUrls = [];
             
-            if (OperatingSystem.IsLinux()) field = "/etc/hosts";
-            else if (OperatingSystem.IsMacOS()) field = "/private/etc/hosts";
-            else if (OperatingSystem.IsWindows()) field = "C:/Windows/System32/drivers/etc/hosts";
-            else throw new PlatformNotSupportedException("Only Linux, macOS and Windows are supported");
-
-            return field;
+            foreach (var list in Config.BlockLists.Where(e => e.Enabled))
+                blockedUrls.AddRange(list.UrlList);
+            
+            return blockedUrls.Distinct().ToArray();
         }
     }
-
-    public static void Block(BlockList blockList)
+    
+    private const string REDIRECT = "0.0.0.0";
+    
+    public static void UpdateBlock()
     {
-        using StreamWriter file = File.AppendText(HostsPath);
-
-        foreach (string url in blockList.UrlList)
-            file.WriteLine($"0.0.0.0 {url}");
-
-        RefreshDns();
-    }
-
-    public static void Unblock(BlockList blockList)
-    {
-        string[] toMatch = blockList.UrlList.Select(e => $"0.0.0.0 {e}").ToArray();
-        var lines = File.ReadLines(HostsPath).ToArray();
-        using StreamWriter file = new(HostsPath);
+        using StreamWriter file = new(Config.HostsPath);
+        file.WriteLine(Config.Get<string>("hosts"));
         
-        foreach (var line in lines)
+        file.WriteLine("\n# FreeBlock blocked URLs");
+        file.WriteLine("0.0.0.0 use-application-dns.net");
+        file.WriteLine("0.0.0.0 www.use-application-dns.net");
+        
+        foreach (string url in BlockedUrls)
         {
-            if (toMatch.Contains(line)) continue;
-            file.WriteLine(line);
+            if (url.StartsWith("www.")) {
+                file.WriteLine($"{REDIRECT} {url.Remove(0, 4)}");
+                file.WriteLine($"{REDIRECT} {url}");
+            } else {
+                file.WriteLine($"{REDIRECT} {url}");
+                file.WriteLine($"{REDIRECT} www.{url}");
+            }
         }
-        
+
         RefreshDns();
     }
     
