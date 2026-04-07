@@ -1,5 +1,9 @@
 ﻿using FreeBlock;
 
+// freeblock schedule add [list] [start] [end] [days]
+// freeblock schedule remove [list] -> schedule prompt
+// freeblock schedule edit [list]
+
 #region Command System
 
 CommandSystem.Register(new Command(
@@ -76,7 +80,7 @@ void ShowHelp()
                       freeblock list remove [name]       Delete a block list
                       freeblock block [list]             Enable a block list
                       freeblock unblock [list]           Disable a block list
-                      freeblock lock [list] [minutes]    Block and lock a list for the provided amount of minutes
+                      freeblock lock [list] [minutes]    Block and prevent disabling a list for the provided amount of minutes
                       """);
 }
 
@@ -103,6 +107,8 @@ void AddList(AddListArgument argument)
         if (input.StartsWith("http://")) input = input.Remove(0, 7);
         urlList.Add(input);
     }
+    
+    Console.WriteLine();
     
     // Add list
     var list = new BlockList
@@ -168,12 +174,20 @@ void Lock(ListArgument list, IntArgument minutes)
         return;
     }
     
-    list.Value!.Enabled = true;
-    list.Value!.UnlockTime = unlockTime;
-    Blocker.UpdateBlock();
-    Config.Save();
+    Prompt:
+    Console.Write($"This will block {list.Value!.Name} for {minutes.Value} minutes. Okay to continue? (Y/n): ");
+    var input = Console.ReadLine()!.Trim().ToLowerInvariant();
+
+    if (input is "" or "y")
+    {
+        list.Value!.Enabled = true;
+        list.Value!.UnlockTime = unlockTime;
+        Blocker.UpdateBlock();
+        Config.Save();
     
-    Console.WriteLine($"Locked list for {minutes.Value} minutes: {list.Value!.Name}");
+        Console.WriteLine();
+        Console.WriteLine($"Locked list for {minutes.Value} minutes: {list.Value!.Name}");   
+    } else if (input != "n") goto Prompt;
 }
 
 #endregion

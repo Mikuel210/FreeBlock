@@ -21,12 +21,6 @@ public record StringArgument(string Name) : Argument<string>(Name)
     }
 }
 
-public enum ListArgumentType
-{
-    MustExist,
-    MustNotExist
-}
-
 public record ListArgument(string Name) : Argument<BlockList>(Name)
 {
     public override bool Validate(string input)
