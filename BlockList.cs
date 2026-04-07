@@ -11,4 +11,7 @@ public class BlockList
     public DateTime? UnlockTime { get; set; }
     [JsonIgnore] public bool Locked => UnlockTime != null && UnlockTime > DateTime.Now;
 
+    public static BlockList? FromName(string name) => 
+        Config.BlockLists.FirstOrDefault(e => string.Equals(e.Name, name, StringComparison.InvariantCultureIgnoreCase));
+
 }

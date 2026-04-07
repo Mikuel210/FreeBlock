@@ -1,4 +1,4 @@
-﻿# StarBlock
+﻿# FreeBlock
 
 An open source desktop website blocker
 
@@ -17,7 +17,8 @@ An open source desktop website blocker
 
 ## Roadmap
 
-- [/] Timers
+- [x] Timers
+- [ ] Command system
 - [ ] Editing lists
 - [ ] Schedules
 - [ ] Locking lists
