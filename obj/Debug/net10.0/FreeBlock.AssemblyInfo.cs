@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FreeBlock")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+770dbb0285c6788644abec10b0cf1bd6e5448f2e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8e8904fd345d9f3cb4704cce9f67f5690061980f")]
 [assembly: System.Reflection.AssemblyProductAttribute("FreeBlock")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FreeBlock")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

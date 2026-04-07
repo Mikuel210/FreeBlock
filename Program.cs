@@ -3,6 +3,12 @@
 #region Command System
 
 CommandSystem.Register(new Command(
+    ["help"],
+    [],
+    ShowHelp
+));
+
+CommandSystem.Register(new Command(
     ["status"],
     [],
     ShowStatus
@@ -38,11 +44,50 @@ CommandSystem.Register(new Command(
     Lock
 ));
 
+CommandSystem.Register(new Command(
+    [],
+    [],
+    ShowUsage
+));
+
 CommandSystem.Handle(args);
 
 #endregion
 
 #region Commands
+
+void ShowUsage()
+{
+    Console.WriteLine("""
+                      Usage: freeblock [command]
+                      See: freeblock help
+                      """);
+}
+
+void ShowHelp()
+{
+    Console.WriteLine("""
+                      Usage: freeblock [command]
+                      
+                      Available commands:
+                      freeblock help                     Show the help dialog
+                      freeblock status                   Show the current status of block lists
+                      freeblock list add [name]          Create a new block list
+                      freeblock list remove [name]       Delete a block list
+                      freeblock block [list]             Enable a block list
+                      freeblock unblock [list]           Disable a block list
+                      freeblock lock [list] [minutes]    Block and lock a list for the provided amount of minutes
+                      """);
+}
+
+void ShowStatus()
+{
+    if (Config.BlockLists.Count == 0)
+        Console.WriteLine("No lists found");
+    
+    foreach (var list in Config.BlockLists)
+        Console.WriteLine((list.Enabled ? "🟢" : "🔴") + $" {list.Name} " + (list.Locked ? $"(🔒 {list.UnlockTime})" : ""));
+}
 
 void AddList(AddListArgument argument)
 {
@@ -87,15 +132,6 @@ void RemoveList(ListArgument list)
     Config.Save();
     
     Console.WriteLine($"Removed list: {list.Value.Name}");
-}
-
-void ShowStatus()
-{
-    if (Config.BlockLists.Count == 0)
-        Console.WriteLine("No lists found");
-    
-    foreach (var list in Config.BlockLists)
-        Console.WriteLine((list.Enabled ? "🟢" : "🔴") + $" {list.Name} " + (list.Locked ? $"(🔒 {list.UnlockTime})" : ""));
 }
 
 void Block(ListArgument list)
