@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CLI/CLI.csproj" />
+  <Project Path="Daemon/Daemon.csproj" />
+</Solution>

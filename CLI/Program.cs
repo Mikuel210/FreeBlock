@@ -1,8 +1,4 @@
-﻿using FreeBlock;
-
-// freeblock schedule add [list] [start] [end] [days]
-// freeblock schedule remove [list] -> schedule prompt
-// freeblock schedule edit [list]
+﻿using CLI;
 
 #region Command System
 
@@ -19,7 +15,7 @@ CommandSystem.Register(new Command(
 ));
 
 CommandSystem.Register(new Command(
-    ["list", "add"], 
+    ["list", "add"],
     [new AddListArgument("name")],
     AddList
 ));
@@ -72,7 +68,7 @@ void ShowHelp()
 {
     Console.WriteLine("""
                       Usage: freeblock [command]
-                      
+
                       Available commands:
                       freeblock help                     Show the help dialog
                       freeblock status                   Show the current status of block lists
@@ -88,7 +84,7 @@ void ShowStatus()
 {
     if (Config.BlockLists.Count == 0)
         Console.WriteLine("No lists found");
-    
+
     foreach (var list in Config.BlockLists)
         Console.WriteLine((list.Enabled ? "🟢" : "🔴") + $" {list.Name} " + (list.Locked ? $"(🔒 {list.UnlockTime})" : ""));
 }
@@ -98,29 +94,30 @@ void AddList(AddListArgument argument)
     // Websites
     List<string> urlList = [];
 
-    while (true) {
+    while (true)
+    {
         Console.Write("Add website (empty to end): ");
         string input = Console.ReadLine()!.Trim();
         if (input == string.Empty) break;
-        
+
         if (input.StartsWith("https://")) input = input.Remove(0, 8);
         if (input.StartsWith("http://")) input = input.Remove(0, 7);
         urlList.Add(input);
     }
-    
+
     Console.WriteLine();
-    
+
     // Add list
     var list = new BlockList
     {
         Name = argument.Value!,
         UrlList = urlList
     };
-        
+
     Config.BlockLists.Add(list);
     Blocker.UpdateBlock();
     Config.Save();
-    
+
     Console.WriteLine("List created successfully");
 }
 
@@ -131,21 +128,30 @@ void RemoveList(ListArgument list)
         Console.WriteLine($"List {list.Value!.Name} is locked until {list.Value!.UnlockTime}");
         return;
     }
-    
+
     list.Value!.Enabled = false;
     Config.BlockLists.Remove(list.Value);
     Blocker.UpdateBlock();
     Config.Save();
-    
+
     Console.WriteLine($"Removed list: {list.Value.Name}");
 }
 
 void Block(ListArgument list)
 {
+    if (list.Value!.Enabled == true)
+    {
+        Console.WriteLine($"List is already blocked: {list.Value!.Name}");
+        return;
+    }
+
+    if (!ConsoleUtils.PromptYesNo("This will close all browser windows to ensure blocking refreshes. Okay to continue?", true)) return;
+
     list.Value!.Enabled = true;
     Blocker.UpdateBlock();
+    Blocker.CloseBrowsers();
     Config.Save();
-    
+
     Console.WriteLine($"Blocked list: {list.Value!.Name}");
 }
 
@@ -156,11 +162,11 @@ void Unblock(ListArgument list)
         Console.WriteLine($"List {list.Value!.Name} is locked until {list.Value!.UnlockTime}");
         return;
     }
-    
+
     list.Value.Enabled = false;
     Blocker.UpdateBlock();
     Config.Save();
-    
+
     Console.WriteLine($"Unblocked list: {list.Value!.Name}");
 }
 
@@ -173,21 +179,17 @@ void Lock(ListArgument list, IntArgument minutes)
         Console.WriteLine($"List is already locked until {list.Value!.UnlockTime}: {list.Value!.Name}");
         return;
     }
-    
-    Prompt:
-    Console.Write($"This will block {list.Value!.Name} for {minutes.Value} minutes. Okay to continue? (Y/n): ");
-    var input = Console.ReadLine()!.Trim().ToLowerInvariant();
 
-    if (input is "" or "y")
-    {
-        list.Value!.Enabled = true;
-        list.Value!.UnlockTime = unlockTime;
-        Blocker.UpdateBlock();
-        Config.Save();
-    
-        Console.WriteLine();
-        Console.WriteLine($"Locked list for {minutes.Value} minutes: {list.Value!.Name}");   
-    } else if (input != "n") goto Prompt;
+    if (!ConsoleUtils.PromptYesNo($"This will block {list.Value!.Name} for {minutes.Value} minutes. Okay to continue?", true)) return;
+
+    list.Value!.Enabled = true;
+    list.Value!.UnlockTime = unlockTime;
+    Blocker.UpdateBlock();
+    Blocker.CloseBrowsers();
+    Config.Save();
+
+    Console.WriteLine();
+    Console.WriteLine($"Locked list for {minutes.Value} minutes: {list.Value!.Name}");
 }
 
 #endregion

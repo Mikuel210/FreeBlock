@@ -1,4 +1,4 @@
-﻿namespace FreeBlock;
+﻿namespace CLI;
 
 public interface IArgument
 {
@@ -32,7 +32,7 @@ public record ListArgument(string Name) : Argument<BlockList>(Name)
             Console.WriteLine($"List not found: {input}");
             return false;
         }
-        
+
         return true;
     }
 }
@@ -65,7 +65,7 @@ public record IntArgument(string Name) : Argument<int>(Name)
             Console.WriteLine($"[{Name}] must be an integer");
             return false;
         }
-        
+
         Value = value;
         return true;
     }
