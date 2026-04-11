@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-namespace CLI;
+﻿namespace CLI;
 
 public static class CommandSystem
 {
@@ -8,7 +6,7 @@ public static class CommandSystem
     private static readonly List<Command> _commands = [];
     public static void Register(Command command) => _commands.Add(command);
 
-    public static void Handle(string[] args)
+    public static async Task Handle(string[] args)
     {
         // Find command
         args = args.Select(e => e.Trim()).ToArray();
@@ -33,7 +31,7 @@ public static class CommandSystem
 
             // Validate argument
         Validate:
-            var result = argument.Validate(args[i]);
+            var result = await argument.Validate(args[i]);
             if (writeLine) Console.WriteLine();
             if (result) continue;
 
@@ -67,7 +65,7 @@ public static class CommandSystem
         }
 
         // Run command
-        command.Run.GetMethodInfo().Invoke(command, command.Arguments.ToArray());
+        await (Task)command.Run.DynamicInvoke(command.Arguments.ToArray())!;
     }
 
     private static Command? GetMatchingCommand(string[] args)

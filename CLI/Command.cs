@@ -1,20 +1,23 @@
-﻿namespace CLI;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using SDK;
+
+namespace CLI;
 
 public interface IArgument
 {
     public string Name { get; }
-    public bool Validate(string input);
+    public Task<bool> Validate(string input);
 }
 
 public abstract record Argument<T>(string Name) : IArgument
 {
     public T? Value { get; protected set; }
-    public abstract bool Validate(string input);
+    public abstract Task<bool> Validate(string input);
 }
 
 public record StringArgument(string Name) : Argument<string>(Name)
 {
-    public override bool Validate(string input)
+    public override async Task<bool> Validate(string input)
     {
         Value = input;
         return true;
@@ -23,9 +26,9 @@ public record StringArgument(string Name) : Argument<string>(Name)
 
 public record ListArgument(string Name) : Argument<BlockList>(Name)
 {
-    public override bool Validate(string input)
+    public override async Task<bool> Validate(string input)
     {
-        Value = BlockList.FromName(input);
+        Value = await ConnectionManager.Connection!.InvokeAsync<BlockList>("GetListFromNameAsync", input);
 
         if (Value == null)
         {
@@ -39,9 +42,9 @@ public record ListArgument(string Name) : Argument<BlockList>(Name)
 
 public record AddListArgument(string Name) : Argument<string>(Name)
 {
-    public override bool Validate(string input)
+    public override async Task<bool> Validate(string input)
     {
-        var list = BlockList.FromName(input);
+        var list = await ConnectionManager.Connection!.InvokeAsync<BlockList>("GetListFromNameAsync", input);
 
         if (list != null)
         {
@@ -56,7 +59,7 @@ public record AddListArgument(string Name) : Argument<string>(Name)
 
 public record IntArgument(string Name) : Argument<int>(Name)
 {
-    public override bool Validate(string input)
+    public override async Task<bool> Validate(string input)
     {
         var result = int.TryParse(input, out var value);
 

@@ -1,7 +1,8 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SDK;
 
-namespace CLI;
+namespace Daemon;
 
 public static class Config
 {

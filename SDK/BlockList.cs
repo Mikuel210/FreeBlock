@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace CLI;
+namespace SDK;
 
 public class BlockList
 {
@@ -13,9 +13,6 @@ public class BlockList
     public DateTime? UnlockTime { get; set; }
 
     public List<Schedule> Schedules { get; init; } = [];
-
-    public static BlockList? FromName(string name) =>
-        Config.BlockLists.FirstOrDefault(e => string.Equals(e.Name, name, StringComparison.InvariantCultureIgnoreCase));
 
 }
 

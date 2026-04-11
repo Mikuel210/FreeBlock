@@ -1,7 +1,10 @@
 using Daemon;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHostedService<Worker>();
+builder.Services.AddSignalR();
 
-var host = builder.Build();
-host.Run();
+var app = builder.Build();
+app.MapHub<CommunicationHub>("/hub");
+app.Map("/", () => "FreeBlock: All systems nominal");
+app.Run();

@@ -10,8 +10,8 @@ public static class ConsoleUtils
             Console.Write($"{message} ({(defaultValue ? 'Y' : 'y')}/{(defaultValue ? 'n' : 'N')}): ");
             var input = Console.ReadLine()!.Trim().ToLowerInvariant();
 
-            if (input is "" or "y") return true;
-            if (input == "n") return false;
+            if (input is "" or "y" or "yes") return true;
+            if (input is "n" or "no") return false;
         }
     }
 

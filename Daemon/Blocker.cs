@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using SDK;
 
-namespace CLI;
+namespace Daemon;
 
 public static class Blocker
 {
@@ -20,33 +20,33 @@ public static class Blocker
     }
 
     private static readonly string[] BROWSERS = [
-        "chrome.exe", "Google Chrome", "google-chrome", "chrome",
-        "firefox.exe", "firefox",
-        "msedge.exe", "Microsoft Edge", "microsoft-edge",
-        "Safari",
-        "opera.exe", "Opera", "opera",
-        "brave.exe", "Brave Browser", "brave-browser", "brave",
-        "vivaldi.exe", "Vivaldi", "vivaldi-bin",
-        "Arc.exe", "Arc", "arc",
-        "DuckDuckGo.exe", "DuckDuckGo",
-        "tor-browser",
-        "mullvadbrowser.exe", "Mullvad Browser", "mullvad-browser",
-        "librewolf.exe", "LibreWolf", "librewolf",
-        "floorp.exe", "Floorp", "floorp",
-        "waterfox.exe", "Waterfox", "waterfox",
-        "palemoon.exe", "Pale Moon", "palemoon",
-        "Chromium", "chromium",
-        "epiphany",
-        "falkon",
-        "konqueror",
-        "midori",
-        "qutebrowser",
-        "Ladybird",
-        "Min", "Min.exe",
-        "seamonkey.exe", "seamonkey",
-        "k-meleon.exe",
-        "netsurf"
-    ];
+            "chrome.exe", "Google Chrome", "google-chrome", "chrome",
+            "firefox.exe", "firefox",
+            "msedge.exe", "Microsoft Edge", "microsoft-edge",
+            "Safari",
+            "opera.exe", "Opera", "opera",
+            "brave.exe", "Brave Browser", "brave-browser", "brave",
+            "vivaldi.exe", "Vivaldi", "vivaldi-bin",
+            "Arc.exe", "Arc", "arc",
+            "DuckDuckGo.exe", "DuckDuckGo",
+            "tor-browser",
+            "mullvadbrowser.exe", "Mullvad Browser", "mullvad-browser",
+            "librewolf.exe", "LibreWolf", "librewolf",
+            "floorp.exe", "Floorp", "floorp",
+            "waterfox.exe", "Waterfox", "waterfox",
+            "palemoon.exe", "Pale Moon", "palemoon",
+            "Chromium", "chromium",
+            "epiphany",
+            "falkon",
+            "konqueror",
+            "midori",
+            "qutebrowser",
+            "Ladybird",
+            "Min", "Min.exe",
+            "seamonkey.exe", "seamonkey",
+            "k-meleon.exe",
+            "netsurf"
+        ];
 
     private const string REDIRECT = "0.0.0.0";
 

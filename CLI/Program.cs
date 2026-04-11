@@ -1,4 +1,8 @@
-﻿using CLI;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using SDK;
+using CLI;
+
+await ConnectionManager.Initialize();
 
 #region Command System
 
@@ -50,21 +54,23 @@ CommandSystem.Register(new Command(
     ShowUsage
 ));
 
-CommandSystem.Handle(args);
+await CommandSystem.Handle(args);
 
 #endregion
 
 #region Commands
 
-void ShowUsage()
+Task ShowUsage()
 {
     Console.WriteLine("""
                       Usage: freeblock [command]
                       See: freeblock help
                       """);
+
+    return Task.CompletedTask;
 }
 
-void ShowHelp()
+Task ShowHelp()
 {
     Console.WriteLine("""
                       Usage: freeblock [command]
@@ -78,18 +84,22 @@ void ShowHelp()
                       freeblock unblock [list]           Disable a block list
                       freeblock lock [list] [minutes]    Block and prevent disabling a list for the provided amount of minutes
                       """);
+
+    return Task.CompletedTask;
 }
 
-void ShowStatus()
+async Task ShowStatus()
 {
-    if (Config.BlockLists.Count == 0)
+    var lists = await ConnectionManager.Connection!.InvokeAsync<BlockList[]>("GetBlockListsAsync");
+
+    if (lists.Length == 0)
         Console.WriteLine("No lists found");
 
-    foreach (var list in Config.BlockLists)
+    foreach (var list in lists)
         Console.WriteLine((list.Enabled ? "🟢" : "🔴") + $" {list.Name} " + (list.Locked ? $"(🔒 {list.UnlockTime})" : ""));
 }
 
-void AddList(AddListArgument argument)
+async Task AddList(AddListArgument argument)
 {
     // Websites
     List<string> urlList = [];
@@ -114,14 +124,11 @@ void AddList(AddListArgument argument)
         UrlList = urlList
     };
 
-    Config.BlockLists.Add(list);
-    Blocker.UpdateBlock();
-    Config.Save();
-
+    await ConnectionManager.Connection!.InvokeAsync("AddListAsync", list);
     Console.WriteLine("List created successfully");
 }
 
-void RemoveList(ListArgument list)
+async Task RemoveList(ListArgument list)
 {
     if (list.Value!.Locked)
     {
@@ -129,15 +136,11 @@ void RemoveList(ListArgument list)
         return;
     }
 
-    list.Value!.Enabled = false;
-    Config.BlockLists.Remove(list.Value);
-    Blocker.UpdateBlock();
-    Config.Save();
-
+    await ConnectionManager.Connection!.InvokeAsync("RemoveListAsync", list.Value!);
     Console.WriteLine($"Removed list: {list.Value.Name}");
 }
 
-void Block(ListArgument list)
+async Task Block(ListArgument list)
 {
     if (list.Value!.Enabled == true)
     {
@@ -145,17 +148,13 @@ void Block(ListArgument list)
         return;
     }
 
-    if (!ConsoleUtils.PromptYesNo("This will close all browser windows to ensure blocking refreshes. Okay to continue?", true)) return;
+    if (!ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?", true)) return;
 
-    list.Value!.Enabled = true;
-    Blocker.UpdateBlock();
-    Blocker.CloseBrowsers();
-    Config.Save();
-
+    await ConnectionManager.Connection!.InvokeAsync("BlockAsync", list.Value!);
     Console.WriteLine($"Blocked list: {list.Value!.Name}");
 }
 
-void Unblock(ListArgument list)
+async Task Unblock(ListArgument list)
 {
     if (list.Value!.Locked)
     {
@@ -163,14 +162,11 @@ void Unblock(ListArgument list)
         return;
     }
 
-    list.Value.Enabled = false;
-    Blocker.UpdateBlock();
-    Config.Save();
-
+    await ConnectionManager.Connection!.InvokeAsync("UnblockAsync", list.Value!);
     Console.WriteLine($"Unblocked list: {list.Value!.Name}");
 }
 
-void Lock(ListArgument list, IntArgument minutes)
+async Task Lock(ListArgument list, IntArgument minutes)
 {
     var unlockTime = DateTime.Now.AddMinutes(minutes.Value);
 
@@ -180,13 +176,11 @@ void Lock(ListArgument list, IntArgument minutes)
         return;
     }
 
-    if (!ConsoleUtils.PromptYesNo($"This will block {list.Value!.Name} for {minutes.Value} minutes. Okay to continue?", true)) return;
+    var prompt = $"This will block {list.Value!.Name} for {minutes.Value} minute{(minutes.Value == 1 ? "" : "s")} ";
+    prompt += "and close all browser windows to refresh blocking. Okay to continue?";
 
-    list.Value!.Enabled = true;
-    list.Value!.UnlockTime = unlockTime;
-    Blocker.UpdateBlock();
-    Blocker.CloseBrowsers();
-    Config.Save();
+    if (!ConsoleUtils.PromptYesNo(prompt, true)) return;
+    await ConnectionManager.Connection!.InvokeAsync("LockAsync", list.Value!, unlockTime);
 
     Console.WriteLine();
     Console.WriteLine($"Locked list for {minutes.Value} minutes: {list.Value!.Name}");
