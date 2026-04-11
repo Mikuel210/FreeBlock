@@ -39,8 +39,8 @@ public static class Config
             using StreamWriter file = File.CreateText(ConfigFile);
             file.Write(JsonConvert.SerializeObject(new
             {
-                lines = new Dictionary<string, BlockList>(),
-                hosts = File.ReadAllText(HostsPath)
+                hosts = File.ReadAllText(HostsPath),
+                lists = new List<BlockList>()
             }));
         }
 
@@ -52,6 +52,7 @@ public static class Config
     public static object? Get(string key) => _values[key];
     public static T? Get<T>(string key) where T : class => _values.SelectToken(key)?.ToObject<T>();
     public static void Set(string key, object value) => _values[key] = JToken.FromObject(value);
+
     public static void Save()
     {
         _values["lists"] = JToken.FromObject(BlockLists);

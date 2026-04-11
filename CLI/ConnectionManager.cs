@@ -5,16 +5,24 @@ namespace CLI;
 public static class ConnectionManager
 {
 
-    public static HubConnection? Connection { get; private set; }
+    public static HubConnection Connection { get; }
 
-    public static async Task Initialize()
+    static ConnectionManager()
     {
-        Connection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:5000/hub")
-            .WithAutomaticReconnect()
-            .Build();
+        try
+        {
+            Connection = new HubConnectionBuilder()
+                .WithUrl("http://localhost:5000/hub")
+                .WithAutomaticReconnect()
+                .Build();
 
-        await Connection.StartAsync();
+            Task.WaitAll([Connection.StartAsync()]);
+        }
+        catch
+        {
+            ConsoleUtils.Error("Connection refused. Make sure the FreeBlock background service is running.");
+            Environment.Exit(0);
+        }
     }
 
 }

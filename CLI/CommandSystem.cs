@@ -20,30 +20,29 @@ public static class CommandSystem
         }
 
         // Validate arguments
-        args = args.Skip(command.Route.Length).ToArray();
+        args = [.. args.Skip(command.Route.Length)];
+        var argsList = args.ToList();
         var writeLine = false;
 
         for (int i = 0; i < command.Arguments.Count; i++)
         {
             // Read if no argument provided
             var argument = command.Arguments[i];
-            if (args.Length <= i) goto Read;
+            if (argsList.Count <= i) goto Read;
 
             // Validate argument
         Validate:
-            var result = await argument.Validate(args[i]);
+            var result = await argument.Validate(argsList[i]);
             if (writeLine) Console.WriteLine();
             if (result) continue;
 
             // Remove incorrect argument from array
-            var list = args.ToList();
-            list.RemoveAt(list.Count - 1);
-            args = list.ToArray();
+            argsList.RemoveAt(argsList.Count - 1);
 
             // Read argument
         Read:
-            string space = (args.Length == 0 || args[0] == string.Empty) ? "" : " ";
-            Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", args)} [{argument.Name}]: ");
+            string space = (argsList.Count == 0 || argsList[0] == string.Empty) ? "" : " ";
+            Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} [{argument.Name}]: ");
 
             var input = Console.ReadLine()!.Trim();
             writeLine = true;
@@ -57,15 +56,13 @@ public static class CommandSystem
             }
 
             // Add argument to array
-            var list1 = args.ToList();
-            list1.Add(input);
-            args = list1.ToArray();
-
+            argsList.Add(input);
             goto Validate;
         }
 
         // Run command
-        await (Task)command.Run.DynamicInvoke(command.Arguments.ToArray())!;
+        if (command.Run.DynamicInvoke(command.Arguments.ToArray()) is Task task)
+            await task;
     }
 
     private static Command? GetMatchingCommand(string[] args)
@@ -73,6 +70,7 @@ public static class CommandSystem
         foreach (var command in _commands)
         {
             if (args.Length < command.Route.Length) continue;
+            if (command.Route.Length == 0 && args.Length != 0) continue;
 
             for (int i = 0; i < command.Route.Length; i++)
                 if (command.Route[i] != args[i]) goto End;

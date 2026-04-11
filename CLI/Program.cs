@@ -2,9 +2,13 @@
 using SDK;
 using CLI;
 
-await ConnectionManager.Initialize();
-
 #region Command System
+
+CommandSystem.Register(new Command(
+    [],
+    [],
+    ShowUsage
+));
 
 CommandSystem.Register(new Command(
     ["help"],
@@ -48,29 +52,21 @@ CommandSystem.Register(new Command(
     Lock
 ));
 
-CommandSystem.Register(new Command(
-    [],
-    [],
-    ShowUsage
-));
-
 await CommandSystem.Handle(args);
 
 #endregion
 
 #region Commands
 
-Task ShowUsage()
+void ShowUsage()
 {
     Console.WriteLine("""
                       Usage: freeblock [command]
                       See: freeblock help
                       """);
-
-    return Task.CompletedTask;
 }
 
-Task ShowHelp()
+void ShowHelp()
 {
     Console.WriteLine("""
                       Usage: freeblock [command]
@@ -84,8 +80,6 @@ Task ShowHelp()
                       freeblock unblock [list]           Disable a block list
                       freeblock lock [list] [minutes]    Block and prevent disabling a list for the provided amount of minutes
                       """);
-
-    return Task.CompletedTask;
 }
 
 async Task ShowStatus()
@@ -101,7 +95,7 @@ async Task ShowStatus()
 
 async Task AddList(AddListArgument argument)
 {
-    // Websites
+    // Prompt websites
     List<string> urlList = [];
 
     while (true)
@@ -182,7 +176,6 @@ async Task Lock(ListArgument list, IntArgument minutes)
     if (!ConsoleUtils.PromptYesNo(prompt, true)) return;
     await ConnectionManager.Connection!.InvokeAsync("LockAsync", list.Value!, unlockTime);
 
-    Console.WriteLine();
     Console.WriteLine($"Locked list for {minutes.Value} minutes: {list.Value!.Name}");
 }
 
