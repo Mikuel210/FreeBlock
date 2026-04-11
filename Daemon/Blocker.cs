@@ -56,21 +56,13 @@ public static class Blocker
         file.WriteLine(Config.Get<string>("hosts"));
 
         file.WriteLine("\n# FreeBlock blocked URLs");
-        file.WriteLine("0.0.0.0 use-application-dns.net");
-        file.WriteLine("0.0.0.0 www.use-application-dns.net");
+        file.WriteLine($"{REDIRECT} use-application-dns.net");
+        file.WriteLine($"{REDIRECT} www.use-application-dns.net");
 
         foreach (string url in BlockedUrls)
         {
-            if (url.StartsWith("www."))
-            {
-                file.WriteLine($"{REDIRECT} {url.Remove(0, 4)}");
-                file.WriteLine($"{REDIRECT} {url}");
-            }
-            else
-            {
-                file.WriteLine($"{REDIRECT} {url}");
-                file.WriteLine($"{REDIRECT} www.{url}");
-            }
+            file.WriteLine($"{REDIRECT} {url}");
+            file.WriteLine($"{REDIRECT} www.{url}");
         }
 
         RefreshDns();

@@ -29,6 +29,18 @@ CommandSystem.Register(new Command(
 ));
 
 CommandSystem.Register(new Command(
+    ["list", "edit"],
+    [new ListArgument("name")],
+    EditList
+));
+
+CommandSystem.Register(new Command(
+    ["list", "rename"],
+    [new ListArgument("old"), new AddListArgument("new")],
+    RenameList
+));
+
+CommandSystem.Register(new Command(
     ["list", "remove"],
     [new ListArgument("name")],
     RemoveList
@@ -75,10 +87,12 @@ void ShowHelp()
                       freeblock help                     Show the help dialog
                       freeblock status                   Show the current status of block lists
                       freeblock list add [name]          Create a new block list
+                      freeblock list edit [name]         Edit a block list
+                      freeblock list rename [old] [new]  Rename a block list
                       freeblock list remove [name]       Delete a block list
                       freeblock block [list]             Enable a block list
                       freeblock unblock [list]           Disable a block list
-                      freeblock lock [list] [minutes]    Block and prevent disabling a list for the provided amount of minutes
+                      freeblock lock [list] [minutes]    Block a list for the provided amount of minutes
                       """);
 }
 
@@ -95,31 +109,69 @@ async Task ShowStatus()
 
 async Task AddList(AddListArgument argument)
 {
-    // Prompt websites
-    List<string> urlList = [];
-
-    while (true)
-    {
-        Console.Write("Add website (empty to end): ");
-        string input = Console.ReadLine()!.Trim();
-        if (input == string.Empty) break;
-
-        if (input.StartsWith("https://")) input = input.Remove(0, 8);
-        if (input.StartsWith("http://")) input = input.Remove(0, 7);
-        urlList.Add(input);
-    }
-
-    Console.WriteLine();
-
-    // Add list
     var list = new BlockList
     {
-        Name = argument.Value!,
-        UrlList = urlList
+        Name = argument.Value!
     };
+
+    Console.WriteLine("Waiting for your editor to close the file...");
+    await ConsoleUtils.EditList(list);
 
     await ConnectionManager.Connection!.InvokeAsync("AddListAsync", list);
     Console.WriteLine("List created successfully");
+}
+
+async Task EditList(ListArgument argument)
+{
+    var list = argument.Value!;
+    var previousUrls = list.UrlList.ToList();
+
+    Console.WriteLine("Waiting for your editor to close the file...");
+    await ConsoleUtils.EditList(list);
+
+    bool closeBrowsers = false;
+
+    if (list.Enabled)
+    {
+        // Close browsers
+        foreach (string url in list.UrlList)
+        {
+            if (previousUrls.Contains(url)) continue;
+
+            Console.WriteLine();
+            if (!ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?", true, true)) return;
+
+            closeBrowsers = true;
+            break;
+        }
+
+        // Revert removed websites
+        bool showWarning = false;
+
+        foreach (string url in previousUrls)
+        {
+            if (list.UrlList.Contains(url)) continue;
+
+            list.UrlList.Add(url);
+            showWarning = true;
+        }
+
+        Console.WriteLine();
+        if (showWarning) ConsoleUtils.Warning("Removing websites is not allowed while the list is enabled");
+    }
+
+    await ConnectionManager.Connection!.InvokeAsync("EditListAsync", list, closeBrowsers);
+    Console.WriteLine($"Updated list: {list.Name}");
+}
+
+async Task RenameList(ListArgument listArgument, AddListArgument nameArgument)
+{
+    var list = listArgument.Value!;
+    string oldName = list.Name;
+    string newName = nameArgument.Value!;
+
+    await ConnectionManager.Connection!.InvokeAsync("RenameListAsync", list, newName);
+    Console.WriteLine($"Renamed list: {oldName} -> {newName}");
 }
 
 async Task RemoveList(ListArgument list)

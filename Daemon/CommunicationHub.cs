@@ -12,6 +12,25 @@ public class CommunicationHub : Hub
         Config.Save();
     }
 
+    public async Task EditListAsync(BlockList list, bool closeBrowsers)
+    {
+        var localList = GetLocalList(list);
+        localList.UrlList.Clear();
+        localList.UrlList.AddRange(list.UrlList);
+
+        if (closeBrowsers) Blocker.CloseBrowsers();
+        Blocker.UpdateBlock();
+        Config.Save();
+    }
+
+    public async Task RenameListAsync(BlockList list, string newName)
+    {
+        var localList = GetLocalList(list);
+        localList.Name = newName;
+
+        Config.Save();
+    }
+
     public async Task RemoveListAsync(BlockList list)
     {
         var localList = GetLocalList(list);

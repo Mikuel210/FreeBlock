@@ -5,7 +5,7 @@ namespace SDK;
 public class BlockList
 {
 
-    public string Name { get; init; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public List<string> UrlList { get; init; } = [];
     public bool Enabled { get; set; }
 
