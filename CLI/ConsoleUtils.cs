@@ -26,8 +26,9 @@ public static class ConsoleUtils
         }
     }
 
-    public static void Warning(string message) => Console.WriteLine($"warning: {message}");
-    public static void Error(string message) => Console.WriteLine($"error: {message}");
+    public static void Note(string message) => TitledMessage("Note", message, ConsoleColor.Blue);
+    public static void Warning(string message) => TitledMessage("Warning", message, ConsoleColor.Yellow);
+    public static void Error(string message) => TitledMessage("Error", message, ConsoleColor.Red);
 
     public static async Task EditList(BlockList list)
     {
@@ -97,6 +98,15 @@ public static class ConsoleUtils
         }
 
         return Process.Start(startInfo);
+    }
+
+    private static void TitledMessage(string title, string message, ConsoleColor color)
+    {
+        Console.ForegroundColor = color;
+        Console.Write($"{title.ToLowerInvariant()}: ");
+
+        Console.ResetColor();
+        Console.WriteLine(message);
     }
 
 }

@@ -7,8 +7,10 @@ namespace Daemon;
 public static class Config
 {
 
-    private static JObject _values;
     public static List<BlockList> BlockLists { get; }
+    public static List<Schedule> Schedules { get; }
+
+    private static readonly JObject _values = [];
     public static string ConfigDirectory { get; }
     public static string ConfigFile { get; }
     public static string HostsPath { get; }
@@ -34,19 +36,20 @@ public static class Config
         if (!Path.Exists(ConfigFile))
         {
             Directory.CreateDirectory(Path.GetDirectoryName(ConfigFile)!);
-            _values = new JObject();
-
             using StreamWriter file = File.CreateText(ConfigFile);
+
             file.Write(JsonConvert.SerializeObject(new
             {
                 hosts = File.ReadAllText(HostsPath),
-                lists = new List<BlockList>()
+                lists = new List<BlockList>(),
+                schedules = new List<Schedule>()
             }));
         }
 
         // Load values
         _values = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(ConfigFile))!;
-        BlockLists = _values["lists"]?.ToObject<List<JObject>>()?.Select(e => e.ToObject<BlockList>()!).ToList() ?? [];
+        BlockLists = GetList<BlockList>("lists");
+        Schedules = GetList<Schedule>("schedules");
     }
 
     public static object? Get(string key) => _values[key];
@@ -56,7 +59,11 @@ public static class Config
     public static void Save()
     {
         _values["lists"] = JToken.FromObject(BlockLists);
+        _values["schedules"] = JToken.FromObject(Schedules);
         File.WriteAllText(ConfigFile, _values.ToString());
     }
+
+    private static List<T> GetList<T>(string key)
+        => _values[key]?.ToObject<List<JObject>>()?.Select(e => e.ToObject<T>()!).ToList() ?? [];
 
 }

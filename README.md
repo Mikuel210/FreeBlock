@@ -15,8 +15,8 @@ An open source desktop website blocker
 ## Roadmap
 
 - [x] Timers
-- [x] Command system
 - [x] Editing lists
-- [ ] Schedules
+- [/] Schedules
+- [ ] Breaks
 - [ ] Preventing workarounds
 - [ ] Blocking apps

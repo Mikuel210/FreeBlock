@@ -12,7 +12,7 @@ public static class Blocker
         {
             List<string> blockedUrls = [];
 
-            foreach (var list in Config.BlockLists.Where(e => e.Enabled))
+            foreach (var list in Config.BlockLists.Where(e => e.Active))
                 blockedUrls.AddRange(list.UrlList);
 
             return blockedUrls.Distinct().ToArray();
@@ -20,38 +20,49 @@ public static class Blocker
     }
 
     private static readonly string[] BROWSERS = [
-            "chrome.exe", "Google Chrome", "google-chrome", "chrome",
-            "firefox.exe", "firefox",
-            "msedge.exe", "Microsoft Edge", "microsoft-edge",
-            "Safari",
-            "opera.exe", "Opera", "opera",
-            "brave.exe", "Brave Browser", "brave-browser", "brave",
-            "vivaldi.exe", "Vivaldi", "vivaldi-bin",
-            "Arc.exe", "Arc", "arc",
-            "DuckDuckGo.exe", "DuckDuckGo",
-            "tor-browser",
-            "mullvadbrowser.exe", "Mullvad Browser", "mullvad-browser",
-            "librewolf.exe", "LibreWolf", "librewolf",
-            "floorp.exe", "Floorp", "floorp",
-            "waterfox.exe", "Waterfox", "waterfox",
-            "palemoon.exe", "Pale Moon", "palemoon",
-            "Chromium", "chromium",
-            "epiphany",
-            "falkon",
-            "konqueror",
-            "midori",
-            "qutebrowser",
-            "Ladybird",
-            "Min", "Min.exe",
-            "seamonkey.exe", "seamonkey",
-            "k-meleon.exe",
-            "netsurf"
-        ];
+        "chrome.exe", "Google Chrome", "google-chrome", "chrome",
+        "firefox.exe", "firefox",
+        "msedge.exe", "Microsoft Edge", "microsoft-edge",
+        "Safari",
+        "opera.exe", "Opera", "opera",
+        "brave.exe", "Brave Browser", "brave-browser", "brave",
+        "vivaldi.exe", "Vivaldi", "vivaldi-bin",
+        "Arc.exe", "Arc", "arc",
+        "DuckDuckGo.exe", "DuckDuckGo",
+        "tor-browser",
+        "mullvadbrowser.exe", "Mullvad Browser", "mullvad-browser",
+        "librewolf.exe", "LibreWolf", "librewolf",
+        "floorp.exe", "Floorp", "floorp",
+        "waterfox.exe", "Waterfox", "waterfox",
+        "palemoon.exe", "Pale Moon", "palemoon",
+        "Chromium", "chromium",
+        "epiphany",
+        "falkon",
+        "konqueror",
+        "midori",
+        "qutebrowser",
+        "Ladybird",
+        "Min", "Min.exe",
+        "seamonkey.exe", "seamonkey",
+        "k-meleon.exe",
+        "netsurf"
+    ];
 
     private const string REDIRECT = "0.0.0.0";
+    private static string[] _previousBlockedUrls = [];
 
     public static void UpdateBlock()
     {
+        if (BlockedUrls == _previousBlockedUrls) return;
+
+        // Close browsers if necessary
+        foreach (string url in BlockedUrls)
+        {
+            if (_previousBlockedUrls.Contains(url)) continue;
+            CloseBrowsers();
+        }
+
+        // Write new URLs
         using StreamWriter file = new(Config.HostsPath);
         file.WriteLine(Config.Get<string>("hosts"));
 
@@ -65,7 +76,9 @@ public static class Blocker
             file.WriteLine($"{REDIRECT} www.{url}");
         }
 
+        // Refresh DNS
         RefreshDns();
+        _previousBlockedUrls = BlockedUrls;
     }
 
     public static void CloseBrowsers()

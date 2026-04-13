@@ -12,13 +12,12 @@ public class CommunicationHub : Hub
         Config.Save();
     }
 
-    public async Task EditListAsync(BlockList list, bool closeBrowsers)
+    public async Task EditListAsync(BlockList list)
     {
         var localList = GetLocalList(list);
         localList.UrlList.Clear();
         localList.UrlList.AddRange(list.UrlList);
 
-        if (closeBrowsers) Blocker.CloseBrowsers();
         Blocker.UpdateBlock();
         Config.Save();
     }
@@ -43,17 +42,18 @@ public class CommunicationHub : Hub
     public async Task BlockAsync(BlockList list)
     {
         var localList = GetLocalList(list);
-        localList!.Enabled = true;
-
-        Blocker.UpdateBlock();
-        Blocker.CloseBrowsers();
+        var enabled = localList!.Active;
+        localList!.ManuallyBlocked = true;
         Config.Save();
+
+        if (enabled) return;
+        Blocker.UpdateBlock();
     }
 
     public async Task UnblockAsync(BlockList list)
     {
         var localList = GetLocalList(list);
-        localList!.Enabled = false;
+        localList!.ManuallyBlocked = false;
 
         Blocker.UpdateBlock();
         Config.Save();
@@ -62,11 +62,15 @@ public class CommunicationHub : Hub
     public async Task LockAsync(BlockList list, DateTime unlockTime)
     {
         var localList = GetLocalList(list);
-        localList.Enabled = true;
         localList.UnlockTime = unlockTime;
 
         Blocker.UpdateBlock();
-        Blocker.CloseBrowsers();
+        Config.Save();
+    }
+
+    public async Task AddScheduleAsync(Schedule schedule)
+    {
+        Config.Schedules.Add(schedule); // TODO
         Config.Save();
     }
 
@@ -75,6 +79,9 @@ public class CommunicationHub : Hub
 
     public async Task<BlockList?> GetListFromNameAsync(string name)
         => Config.BlockLists.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+
+    public async Task<Schedule?> GetScheduleFromNameAsync(string name)
+        => Config.Schedules.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
 
     private BlockList GetLocalList(BlockList clientList)
         => Config.BlockLists.First(e => e.Name.Equals(clientList.Name, StringComparison.InvariantCultureIgnoreCase));

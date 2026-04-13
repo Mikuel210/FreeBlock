@@ -60,8 +60,20 @@ CommandSystem.Register(new Command(
 
 CommandSystem.Register(new Command(
     ["lock"],
-    [new ListArgument("list"), new IntArgument("minutes")],
+    [new ListArgument("list"), new TimeArgument("time")],
     Lock
+));
+
+CommandSystem.Register(new Command(
+    ["schedule", "add"],
+    [
+        new AddScheduleArgument("name"),
+        new ArrayArgument<BlockList, ListArgument>("lists"),
+        new TimeArgument("start"),
+        new TimeArgument("end"),
+        new DaysArgument("days"),
+    ],
+    AddSchedule
 ));
 
 await CommandSystem.Handle(args);
@@ -84,16 +96,20 @@ void ShowHelp()
                       Usage: freeblock [command]
 
                       Available commands:
-                      freeblock help                     Show the help dialog
-                      freeblock status                   Show the current status of block lists
-                      freeblock list add [name]          Create a new block list
-                      freeblock list edit [name]         Edit a block list
-                      freeblock list rename [old] [new]  Rename a block list
-                      freeblock list remove [name]       Delete a block list
-                      freeblock block [list]             Enable a block list
-                      freeblock unblock [list]           Disable a block list
-                      freeblock lock [list] [minutes]    Block a list for the provided amount of minutes
+                      freeblock help          Show the help dialog
+                      freeblock status        Show the current status of block lists
+                      freeblock list add      Create a new block list
+                      freeblock list edit     Edit a block list
+                      freeblock list rename   Rename a block list
+                      freeblock list remove   Delete a block list
+                      freeblock block         Manually block a list
+                      freeblock unblock       Manually unblock list
+                      freeblock lock          Block a list for the provided amount of time
                       """);
+
+    // freeblock schedule add [name] [lists] [start] [end] [MTWHFSU/weekdays/weekends/all]
+    // freeblock schedule remove [name]
+
 }
 
 async Task ShowStatus()
@@ -104,7 +120,14 @@ async Task ShowStatus()
         Console.WriteLine("No lists found");
 
     foreach (var list in lists)
-        Console.WriteLine((list.Enabled ? "🟢" : "🔴") + $" {list.Name} " + (list.Locked ? $"(🔒 {list.UnlockTime})" : ""));
+    {
+        List<string> blockReasons = [];
+        if (list.ManuallyBlocked) blockReasons.Add("manual");
+        if (list.Locked) blockReasons.Add($"🔒 {list.UnlockTime}");
+
+        string reasonsString = blockReasons.Count == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
+        Console.WriteLine($"{(list.Active ? "🟢" : "🔴")} {list.Name}{reasonsString}");
+    }
 }
 
 async Task AddList(AddListArgument argument)
@@ -129,9 +152,7 @@ async Task EditList(ListArgument argument)
     Console.WriteLine("Waiting for your editor to close the file...");
     await ConsoleUtils.EditList(list);
 
-    bool closeBrowsers = false;
-
-    if (list.Enabled)
+    if (list.Active)
     {
         // Close browsers
         foreach (string url in list.UrlList)
@@ -141,7 +162,6 @@ async Task EditList(ListArgument argument)
             Console.WriteLine();
             if (!ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?", true, true)) return;
 
-            closeBrowsers = true;
             break;
         }
 
@@ -160,7 +180,7 @@ async Task EditList(ListArgument argument)
         if (showWarning) ConsoleUtils.Warning("Removing websites is not allowed while the list is enabled");
     }
 
-    await ConnectionManager.Connection!.InvokeAsync("EditListAsync", list, closeBrowsers);
+    await ConnectionManager.Connection!.InvokeAsync("EditListAsync", list);
     Console.WriteLine($"Updated list: {list.Name}");
 }
 
@@ -174,61 +194,96 @@ async Task RenameList(ListArgument listArgument, AddListArgument nameArgument)
     Console.WriteLine($"Renamed list: {oldName} -> {newName}");
 }
 
-async Task RemoveList(ListArgument list)
+async Task RemoveList(ListArgument argument)
 {
-    if (list.Value!.Locked)
+    var list = argument.Value!;
+
+    if (list.Locked)
     {
-        Console.WriteLine($"List {list.Value!.Name} is locked until {list.Value!.UnlockTime}");
+        ConsoleUtils.Error($"The list is locked until {list.UnlockTime}");
         return;
     }
 
-    await ConnectionManager.Connection!.InvokeAsync("RemoveListAsync", list.Value!);
-    Console.WriteLine($"Removed list: {list.Value.Name}");
+    if (list.Scheduled)
+    {
+        ConsoleUtils.Error("The list is blocked by a schedule");
+        return;
+    }
+
+    await ConnectionManager.Connection!.InvokeAsync("RemoveListAsync", list);
+    Console.WriteLine($"Removed list: {list.Name}");
 }
 
-async Task Block(ListArgument list)
+async Task Block(ListArgument argument)
 {
-    if (list.Value!.Enabled == true)
+    var list = argument.Value!;
+
+    if (list.Locked) ConsoleUtils.Note($"The list was already active as it's locked until {list.UnlockTime}");
+    if (list.Scheduled) ConsoleUtils.Note("The list was already blocked by an active schedule");
+
+    if (list.ManuallyBlocked)
     {
-        Console.WriteLine($"List is already blocked: {list.Value!.Name}");
+        Console.WriteLine($"Manual block is already enabled: {list.Name}");
         return;
     }
 
-    if (!ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?", true)) return;
+    if (!list.Active && !ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?", true)) return;
 
-    await ConnectionManager.Connection!.InvokeAsync("BlockAsync", list.Value!);
-    Console.WriteLine($"Blocked list: {list.Value!.Name}");
+    await ConnectionManager.Connection!.InvokeAsync("BlockAsync", list);
+    Console.WriteLine($"Enabled manual block: {list.Name}");
 }
 
-async Task Unblock(ListArgument list)
+async Task Unblock(ListArgument argument)
 {
-    if (list.Value!.Locked)
+    var list = argument.Value!;
+
+    if (list.Locked) ConsoleUtils.Warning($"The list remains active as it's locked until {list.UnlockTime}");
+    if (list.Scheduled) ConsoleUtils.Warning("The list remains blocked by an active schedule");
+
+    if (!list.ManuallyBlocked)
     {
-        Console.WriteLine($"List {list.Value!.Name} is locked until {list.Value!.UnlockTime}");
+        Console.WriteLine($"Manual block is already disabled: {list.Name}");
         return;
     }
 
-    await ConnectionManager.Connection!.InvokeAsync("UnblockAsync", list.Value!);
-    Console.WriteLine($"Unblocked list: {list.Value!.Name}");
+    await ConnectionManager.Connection!.InvokeAsync("UnblockAsync", list);
+    Console.WriteLine($"Disabled manual block: {list.Name}");
 }
 
-async Task Lock(ListArgument list, IntArgument minutes)
+async Task Lock(ListArgument listArgument, TimeArgument timeArgument)
 {
-    var unlockTime = DateTime.Now.AddMinutes(minutes.Value);
+    var list = listArgument.Value!;
+    var time = timeArgument.Value!.ToTimeSpan();
+    var unlockTime = DateTime.Now.Add(time);
 
-    if (list.Value!.UnlockTime != null && list.Value!.UnlockTime > unlockTime)
+    if (list.UnlockTime != null && list.UnlockTime > unlockTime)
     {
-        Console.WriteLine($"List is already locked until {list.Value!.UnlockTime}: {list.Value!.Name}");
+        ConsoleUtils.Error($"List is already locked until {list.UnlockTime}: {list.Name}");
         return;
     }
 
-    var prompt = $"This will block {list.Value!.Name} for {minutes.Value} minute{(minutes.Value == 1 ? "" : "s")} ";
+    var prompt = $"This will block {list.Name} for {time} ";
     prompt += "and close all browser windows to refresh blocking. Okay to continue?";
 
     if (!ConsoleUtils.PromptYesNo(prompt, true)) return;
-    await ConnectionManager.Connection!.InvokeAsync("LockAsync", list.Value!, unlockTime);
+    await ConnectionManager.Connection!.InvokeAsync("LockAsync", list, unlockTime);
 
-    Console.WriteLine($"Locked list for {minutes.Value} minutes: {list.Value!.Name}");
+    Console.WriteLine($"Locked list for {time}: {list.Name}");
+}
+
+async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListArgument> lists, TimeArgument start, TimeArgument end, DaysArgument days)
+{
+    var schedule = new Schedule
+    {
+        Name = name.Value!,
+        BlockLists = lists.Value!.ToList(),
+        StartTime = start.Value,
+        EndTime = end.Value,
+        Days = days.Value!
+    };
+
+    await ConnectionManager.Connection!.InvokeAsync("AddScheduleAsync", schedule);
+    Console.WriteLine($"Added schedule: {schedule.Name}");
 }
 
 #endregion
