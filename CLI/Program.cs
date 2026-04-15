@@ -64,6 +64,7 @@ CommandSystem.Register(new Command(
     Lock
 ));
 
+/*
 CommandSystem.Register(new Command(
     ["schedule", "add"],
     [
@@ -75,6 +76,7 @@ CommandSystem.Register(new Command(
     ],
     AddSchedule
 ));
+*/
 
 await CommandSystem.Handle(args);
 
@@ -115,6 +117,10 @@ void ShowHelp()
 async Task ShowStatus()
 {
     var lists = await ConnectionManager.Connection!.InvokeAsync<BlockList[]>("GetBlockListsAsync");
+    var schedules = await ConnectionManager.Connection!.InvokeAsync<Schedule[]>("GetSchedulesAsync");
+
+    // Lists
+    //Console.WriteLine("Lists:");
 
     if (lists.Length == 0)
         Console.WriteLine("No lists found");
@@ -125,9 +131,51 @@ async Task ShowStatus()
         if (list.ManuallyBlocked) blockReasons.Add("manual");
         if (list.Locked) blockReasons.Add($"🔒 {list.UnlockTime}");
 
+        if (list.Scheduled)
+        {
+            var blockingSchedules = schedules.Where(e => e.BlockLists.Select(e => e.Name).Contains(list.Name) && e.Active);
+            blockReasons.Add($"⏰ {string.Join(", ", blockingSchedules.Select(e => e.Name))}");
+        }
+
         string reasonsString = blockReasons.Count == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
         Console.WriteLine($"{(list.Active ? "🟢" : "🔴")} {list.Name}{reasonsString}");
     }
+    /*
+    Console.WriteLine();
+
+    // Schedules
+    Console.WriteLine("Schedules:");
+
+    if (schedules.Length == 0)
+        Console.WriteLine("No schedules found");
+
+    foreach (var schedule in schedules)
+    {
+        string daysString;
+
+        // Get days strings
+        if (schedule.Days.SequenceEqual(Enum.GetValues<DayOfWeek>())) daysString = "all";
+        else if (schedule.Days.SequenceEqual([DayOfWeek.Saturday, DayOfWeek.Sunday])) daysString = "weekdays";
+
+        else if (schedule.Days.SequenceEqual([DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]))
+            daysString = "weekdays";
+
+        else daysString = string.Join("", schedule.Days.Select(e => e switch
+        {
+            DayOfWeek.Monday => "M",
+            DayOfWeek.Tuesday => "T",
+            DayOfWeek.Wednesday => "W",
+            DayOfWeek.Thursday => "H",
+            DayOfWeek.Friday => "F",
+            DayOfWeek.Saturday => "S",
+            DayOfWeek.Sunday => "U",
+            _ => throw new NotImplementedException(),
+        }));
+
+        string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {daysString})";
+        Console.WriteLine($"{(schedule.Active ? "🟢" : "🔴")} {schedule.Name} {timeString}");
+    }
+    */
 }
 
 async Task AddList(AddListArgument argument)
@@ -271,7 +319,7 @@ async Task Lock(ListArgument listArgument, TimeArgument timeArgument)
     Console.WriteLine($"Locked list for {time}: {list.Name}");
 }
 
-async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListArgument> lists, TimeArgument start, TimeArgument end, DaysArgument days)
+/*async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListArgument> lists, TimeArgument start, TimeArgument end, DaysArgument days)
 {
     var schedule = new Schedule
     {
@@ -284,6 +332,6 @@ async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListAr
 
     await ConnectionManager.Connection!.InvokeAsync("AddScheduleAsync", schedule);
     Console.WriteLine($"Added schedule: {schedule.Name}");
-}
+}*/
 
 #endregion

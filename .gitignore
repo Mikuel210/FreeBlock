@@ -1,4 +1,5 @@
-﻿*.swp
+﻿Release
+*.swp
 *.*~
 project.lock.json
 .DS_Store

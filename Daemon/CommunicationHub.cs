@@ -77,6 +77,9 @@ public class CommunicationHub : Hub
     public async Task<BlockList[]> GetBlockListsAsync()
         => Config.BlockLists.ToArray();
 
+    public async Task<Schedule[]> GetSchedulesAsync()
+        => Config.Schedules.ToArray();
+
     public async Task<BlockList?> GetListFromNameAsync(string name)
         => Config.BlockLists.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
 

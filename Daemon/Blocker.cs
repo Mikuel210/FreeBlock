@@ -45,7 +45,8 @@ public static class Blocker
         "Min", "Min.exe",
         "seamonkey.exe", "seamonkey",
         "k-meleon.exe",
-        "netsurf"
+        "netsurf",
+        "Zen", "zen.exe", "zen-browser", "zen"
     ];
 
     private const string REDIRECT = "0.0.0.0";
@@ -53,6 +54,9 @@ public static class Blocker
 
     public static void UpdateBlock()
     {
+        // Update schedules
+        UpdateSchedules();
+
         if (BlockedUrls == _previousBlockedUrls) return;
 
         // Close browsers if necessary
@@ -86,6 +90,19 @@ public static class Blocker
         Process[] processes = Process.GetProcesses();
         Process[] browsers = processes.Where(e => BROWSERS.Contains(e.ProcessName)).ToArray();
         browsers.ToList().ForEach(e => e.Kill());
+    }
+
+    private static void UpdateSchedules()
+    {
+        foreach (var list in Config.BlockLists)
+        {
+            list.Scheduled = Config.Schedules
+                .FirstOrDefault(e =>
+                {
+                    var containsList = e.BlockLists.Select(e => e.Name).Contains(list.Name);
+                    return containsList && e.Active;
+                }) != null;
+        }
     }
 
     private static void RefreshDns()
