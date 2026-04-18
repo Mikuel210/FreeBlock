@@ -2,12 +2,15 @@
 
 **FreeBlock is a free and open source CLI website blocker for Linux, macOS and Windows.**
 
+![FreeBlock Screenshot](Images/Screenshot.png)
+
 ## Navigation
 
 - [About](#about)
 - [Key Features](#key-features)
 - [Usage](#usage)
 - [Getting Started](#getting-started)
+- [Contributing](#contributing)
 - [Roadmap](#roadmap)
 
 ## About
@@ -53,6 +56,10 @@ Builds for macOS and Windows are coming soon! In the meantime, you can **build f
 2. Clone the repository
 3. Build the CLI and add it to your PATH
 4. Build the Daemon and register it as a service running as root
+
+## Contributing
+
+If you spot any bugs, have any feature requests or just want to share your thoughts, feel free to open a discussion or a pull request!
 
 ## Roadmap
 
