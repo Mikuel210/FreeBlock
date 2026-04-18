@@ -58,7 +58,7 @@ Builds for macOS and Windows are coming soon! In the meantime, you can **build f
 
 - [x] Timers
 - [x] Editing lists
-- [/] Schedules
+- [x] Schedules
 - [ ] Preventing known workarounds
 - [ ] Blocking apps
 - [ ] GUI Implementation
