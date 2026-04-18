@@ -168,7 +168,9 @@ public record ArrayArgument<TValue, TArgument>(string Name) : Argument<TValue[]>
 {
     public override async Task<bool> Validate(string input)
     {
-        var inputs = input.Split(',').Select(e => e.Trim());
+        var inputs = input.Split(',').Select(e => e.Trim()).ToList();
+        if (input.Trim().EndsWith(',')) inputs.RemoveAt(inputs.Count - 1);
+
         var argument = (TArgument)Activator.CreateInstance(typeof(TArgument), string.Empty)!;
         List<TValue> values = [];
 
@@ -178,7 +180,7 @@ public record ArrayArgument<TValue, TArgument>(string Name) : Argument<TValue[]>
             values.Add((TValue)argument.Value!);
         }
 
-        Value = values.ToArray();
+        Value = values.Distinct().ToArray();
         return true;
     }
 }

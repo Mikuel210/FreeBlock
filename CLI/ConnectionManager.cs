@@ -12,7 +12,7 @@ public static class ConnectionManager
         try
         {
             Connection = new HubConnectionBuilder()
-                .WithUrl("http://localhost:5000/hub")
+                .WithUrl("http://127.0.0.1:5000/hub")
                 .WithAutomaticReconnect()
                 .Build();
 

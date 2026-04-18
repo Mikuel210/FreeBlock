@@ -1,4 +1,7 @@
 ﻿Release
+release.sh
+update.sh
+
 *.swp
 *.*~
 project.lock.json

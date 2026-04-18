@@ -4,6 +4,8 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        Blocker.UpdateBlock(true);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             Blocker.UpdateBlock();

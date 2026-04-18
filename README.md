@@ -1,23 +1,64 @@
-﻿# FreeBlock
+﻿![FreeBlock Logo](Images/logo.png)
 
-FreeBlock is a free and open source CLI website blocker for Linux, macOS and Windows
+**FreeBlock is a free and open source CLI website blocker for Linux, macOS and Windows.**
+
+## Navigation
+
+- [About](#about)
+- [Key Features](#key-features)
+- [Usage](#usage)
+- [Getting Started](#getting-started)
+- [Roadmap](#roadmap)
+
+## About
+
+FreeBlock is a cross-platform website blocker that helps you focus by managing access to distracting websites. Multi-million dollar corporations are actively fighting for our focus and attention, so I believe it is now more important than ever to take control over our digital consumption in order to focus on what actually matters to us. I built FreeBlock out of a real struggle with focus, and a lack of free tools to help me that fit my needs.
+
+## Key Features
+
+- **Manual blocking:** Create block lists and block them manually
+- **Timed locks:** Prevent disabling lists until a timer runs out
+- **Scheduled blocking:** Create schedules to enable lists automatically
+- **No setup:** Supports all browsers with no setup out of the box
+- **Cross-platform:** Supports Linux, macOS and Windows
+- **No workarounds:** Once you block a list, there's no way to bypass it
 
 ## Usage
 
-- `freeblock status`: Show the current status of block lists (green means active).
-- `freeblock list add`: Create a new block list. Add one website to block per line in the file that will open.
-- `freeblock list edit`: Edit the websites of a block list. You won't be able to remove websites while the list is active.
+- `freeblock status`: Show the current status of block lists and schedules (green means active).
+- `freeblock list add`: Create a new block list. Add one website to block per line in the list file.
+- `freeblock list edit`: Edit the websites of a block list. Removing websites while the list is active is not allowed.
 - `freeblock list rename`: Rename a block list.
-- `freeblock list remove`: Remove a block list. This function is disabled if the list is blocked.
-- `freeblock block`: Enables manual block for a list.
-- `freeblock unblock`: Disables manual block for a list.
-- `freeblock lock`: Locks a list for the provided amount of time. You won't be able to disable it until the timer ends.
+- `freeblock list remove`: Remove a block list. Removing lists while they're active is not allowed.
+- `freeblock block`: Enable manual block for a list.
+- `freeblock unblock`: Disable manual block for a list.
+- `freeblock lock`: Lock a list for the provided amount of time. You won't be able to disable it until the timer ends.
+- `freeblock schedule add`: Create a new schedule.
+- `freeblock schedule remove`: Remove a schedule. Removing schedules while they're active is not allowed.
+
+## Getting Started
+
+> Note that FreeBlock is a work in progress. Expect some rough edges.
+
+### Linux
+
+1. Download and unzip the [latest release](https://github.com/Mikuel210/FreeBlock/releases/latest)
+2. In the release directory, run `install.sh`
+
+### macOS and Windows
+
+Builds for macOS and Windows are coming soon! In the meantime, you can **build from source**:
+
+1. Make sure the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) is installed
+2. Clone the repository
+3. Build the CLI and add it to your PATH
+4. Build the Daemon and register it as a service running as root
 
 ## Roadmap
 
 - [x] Timers
 - [x] Editing lists
-- [ ] Schedules
-- [ ] Breaks
-- [ ] Preventing workarounds
+- [/] Schedules
+- [ ] Preventing known workarounds
 - [ ] Blocking apps
+- [ ] GUI Implementation

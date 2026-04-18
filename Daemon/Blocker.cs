@@ -21,7 +21,7 @@ public static class Blocker
 
     private static readonly string[] BROWSERS = [
         "chrome.exe", "Google Chrome", "google-chrome", "chrome",
-        "firefox.exe", "firefox",
+        "firefox.exe", "firefox", "firefox-bin",
         "msedge.exe", "Microsoft Edge", "microsoft-edge",
         "Safari",
         "opera.exe", "Opera", "opera",
@@ -52,12 +52,12 @@ public static class Blocker
     private const string REDIRECT = "0.0.0.0";
     private static string[] _previousBlockedUrls = [];
 
-    public static void UpdateBlock()
+    public static void UpdateBlock(bool force = false)
     {
         // Update schedules
         UpdateSchedules();
 
-        if (BlockedUrls == _previousBlockedUrls) return;
+        if (BlockedUrls == _previousBlockedUrls && !force) return;
 
         // Close browsers if necessary
         foreach (string url in BlockedUrls)

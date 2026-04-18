@@ -70,7 +70,14 @@ public class CommunicationHub : Hub
 
     public async Task AddScheduleAsync(Schedule schedule)
     {
-        Config.Schedules.Add(schedule); // TODO
+        Config.Schedules.Add(schedule);
+        Config.Save();
+    }
+
+    public async Task RemoveScheduleAsync(Schedule schedule)
+    {
+        var localSchedule = GetLocalSchedule(schedule);
+        Config.Schedules.Remove(localSchedule);
         Config.Save();
     }
 
@@ -88,5 +95,8 @@ public class CommunicationHub : Hub
 
     private BlockList GetLocalList(BlockList clientList)
         => Config.BlockLists.First(e => e.Name.Equals(clientList.Name, StringComparison.InvariantCultureIgnoreCase));
+
+    private Schedule GetLocalSchedule(Schedule clientSchedule)
+        => Config.Schedules.First(e => e.Name.Equals(clientSchedule.Name, StringComparison.InvariantCultureIgnoreCase));
 
 }

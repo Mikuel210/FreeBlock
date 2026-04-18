@@ -6,7 +6,7 @@ namespace CLI;
 public static class ConsoleUtils
 {
 
-    public static bool PromptYesNo(string message, bool defaultValue, bool disableWriteLine = false)
+    public static bool PromptYesNo(string message, bool defaultValue = true, bool disableWriteLine = false)
     {
         bool writeLine = false;
 

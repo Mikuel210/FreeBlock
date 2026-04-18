@@ -64,7 +64,6 @@ CommandSystem.Register(new Command(
     Lock
 ));
 
-/*
 CommandSystem.Register(new Command(
     ["schedule", "add"],
     [
@@ -76,7 +75,12 @@ CommandSystem.Register(new Command(
     ],
     AddSchedule
 ));
-*/
+
+CommandSystem.Register(new Command(
+    ["schedule", "remove"],
+    [new ScheduleArgument("name")],
+    RemoveSchedule
+));
 
 await CommandSystem.Handle(args);
 
@@ -98,20 +102,18 @@ void ShowHelp()
                       Usage: freeblock [command]
 
                       Available commands:
-                      freeblock help          Show the help dialog
-                      freeblock status        Show the current status of block lists
-                      freeblock list add      Create a new block list
-                      freeblock list edit     Edit a block list
-                      freeblock list rename   Rename a block list
-                      freeblock list remove   Delete a block list
-                      freeblock block         Manually block a list
-                      freeblock unblock       Manually unblock list
-                      freeblock lock          Block a list for the provided amount of time
+                      freeblock help             Show the help dialog
+                      freeblock status           Show the current status of block lists and schedules
+                      freeblock list add         Create a new block list
+                      freeblock list edit        Edit a block list
+                      freeblock list rename      Rename a block list
+                      freeblock list remove      Delete a block list
+                      freeblock block            Manually block a list
+                      freeblock unblock          Manually unblock list
+                      freeblock lock             Block a list for the provided amount of time
+                      freeblock schedule add     Create a new schedule
+                      freeblock schedule remove  Remove a schedule
                       """);
-
-    // freeblock schedule add [name] [lists] [start] [end] [MTWHFSU/weekdays/weekends/all]
-    // freeblock schedule remove [name]
-
 }
 
 async Task ShowStatus()
@@ -119,12 +121,13 @@ async Task ShowStatus()
     var lists = await ConnectionManager.Connection!.InvokeAsync<BlockList[]>("GetBlockListsAsync");
     var schedules = await ConnectionManager.Connection!.InvokeAsync<Schedule[]>("GetSchedulesAsync");
 
+    if (lists.Length == 0 && schedules.Length == 0)
+    {
+        Console.WriteLine("No lists or schedules found");
+        return;
+    }
+
     // Lists
-    //Console.WriteLine("Lists:");
-
-    if (lists.Length == 0)
-        Console.WriteLine("No lists found");
-
     foreach (var list in lists)
     {
         List<string> blockReasons = [];
@@ -138,17 +141,10 @@ async Task ShowStatus()
         }
 
         string reasonsString = blockReasons.Count == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
-        Console.WriteLine($"{(list.Active ? "🟢" : "🔴")} {list.Name}{reasonsString}");
+        Console.WriteLine($"📋{(list.Active ? "🟢" : "🔴")} {list.Name}{reasonsString}");
     }
-    /*
-    Console.WriteLine();
 
     // Schedules
-    Console.WriteLine("Schedules:");
-
-    if (schedules.Length == 0)
-        Console.WriteLine("No schedules found");
-
     foreach (var schedule in schedules)
     {
         string daysString;
@@ -173,9 +169,8 @@ async Task ShowStatus()
         }));
 
         string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {daysString})";
-        Console.WriteLine($"{(schedule.Active ? "🟢" : "🔴")} {schedule.Name} {timeString}");
+        Console.WriteLine($"⏰{(schedule.Active ? "🟢" : "🔴")} {schedule.Name} {timeString}");
     }
-    */
 }
 
 async Task AddList(AddListArgument argument)
@@ -225,7 +220,7 @@ async Task EditList(ListArgument argument)
         }
 
         Console.WriteLine();
-        if (showWarning) ConsoleUtils.Warning("Removing websites is not allowed while the list is enabled");
+        if (showWarning) ConsoleUtils.Warning("Removing websites is not allowed while the list is active");
     }
 
     await ConnectionManager.Connection!.InvokeAsync("EditListAsync", list);
@@ -246,15 +241,21 @@ async Task RemoveList(ListArgument argument)
 {
     var list = argument.Value!;
 
-    if (list.Locked)
+    var schedules = (await ConnectionManager.Connection!
+        .InvokeAsync<Schedule[]>("GetSchedulesAsync"))
+        .Where(e => e.BlockLists
+            .Select(e => e.Name)
+            .Contains(list.Name));
+
+    if (list.Active)
     {
-        ConsoleUtils.Error($"The list is locked until {list.UnlockTime}");
+        ConsoleUtils.Error($"Removing lists while they're active is not allowed: {list.Name}");
         return;
     }
 
-    if (list.Scheduled)
+    if (schedules.Any())
     {
-        ConsoleUtils.Error("The list is blocked by a schedule");
+        ConsoleUtils.Error($"The list is being used by {(schedules.Count() == 1 ? "an schedule" : "schedules")}: {string.Join(", ", schedules.Select(e => e.Name))}");
         return;
     }
 
@@ -275,7 +276,7 @@ async Task Block(ListArgument argument)
         return;
     }
 
-    if (!list.Active && !ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?", true)) return;
+    if (!list.Active && !ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?")) return;
 
     await ConnectionManager.Connection!.InvokeAsync("BlockAsync", list);
     Console.WriteLine($"Enabled manual block: {list.Name}");
@@ -284,10 +285,24 @@ async Task Block(ListArgument argument)
 async Task Unblock(ListArgument argument)
 {
     var list = argument.Value!;
-
     if (list.Locked) ConsoleUtils.Warning($"The list remains active as it's locked until {list.UnlockTime}");
-    if (list.Scheduled) ConsoleUtils.Warning("The list remains blocked by an active schedule");
 
+    if (list.Scheduled)
+    {
+        var schedules = (await ConnectionManager.Connection!
+            .InvokeAsync<Schedule[]>("GetSchedulesAsync"))
+            .Where(e => e.BlockLists
+                .Select(e => e.Name)
+                .Contains(list.Name) && e.Active)
+            .Select(e => e.Name)
+            .ToList();
+
+        if (schedules.Count == 0) goto End;
+        if (schedules.Count == 1) ConsoleUtils.Warning($"The list remains blocked by an active schedule: {schedules.First()}");
+        else ConsoleUtils.Warning($"The list remains blocked by active schedules: {string.Join(", ", schedules)}");
+    }
+
+End:
     if (!list.ManuallyBlocked)
     {
         Console.WriteLine($"Manual block is already disabled: {list.Name}");
@@ -313,13 +328,13 @@ async Task Lock(ListArgument listArgument, TimeArgument timeArgument)
     var prompt = $"This will block {list.Name} for {time} ";
     prompt += "and close all browser windows to refresh blocking. Okay to continue?";
 
-    if (!ConsoleUtils.PromptYesNo(prompt, true)) return;
+    if (!ConsoleUtils.PromptYesNo(prompt)) return;
     await ConnectionManager.Connection!.InvokeAsync("LockAsync", list, unlockTime);
 
     Console.WriteLine($"Locked list for {time}: {list.Name}");
 }
 
-/*async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListArgument> lists, TimeArgument start, TimeArgument end, DaysArgument days)
+async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListArgument> lists, TimeArgument start, TimeArgument end, DaysArgument days)
 {
     var schedule = new Schedule
     {
@@ -330,8 +345,24 @@ async Task Lock(ListArgument listArgument, TimeArgument timeArgument)
         Days = days.Value!
     };
 
+    if (schedule.Active && !ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?")) return;
+
     await ConnectionManager.Connection!.InvokeAsync("AddScheduleAsync", schedule);
     Console.WriteLine($"Added schedule: {schedule.Name}");
-}*/
+}
+
+async Task RemoveSchedule(ScheduleArgument argument)
+{
+    var schedule = argument.Value!;
+
+    if (schedule.Active)
+    {
+        ConsoleUtils.Error($"Removing schedules while they're active is not allowed: {schedule.Name}");
+        return;
+    }
+
+    await ConnectionManager.Connection!.InvokeAsync("RemoveScheduleAsync", schedule);
+    Console.WriteLine($"Removed schedule: {schedule.Name}");
+}
 
 #endregion
