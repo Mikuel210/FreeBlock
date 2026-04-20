@@ -1,6 +1,6 @@
 namespace SDK;
 
-public class BlockList
+public class BlockList : IName
 {
     public string Name { get; set; } = string.Empty;
     public List<string> UrlList { get; init; } = [];

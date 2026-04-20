@@ -297,12 +297,10 @@ async Task Unblock(ListArgument argument)
             .Select(e => e.Name)
             .ToList();
 
-        if (schedules.Count == 0) goto End;
         if (schedules.Count == 1) ConsoleUtils.Warning($"The list remains blocked by an active schedule: {schedules.First()}");
-        else ConsoleUtils.Warning($"The list remains blocked by active schedules: {string.Join(", ", schedules)}");
+        else if (schedules.Count != 0) ConsoleUtils.Warning($"The list remains blocked by active schedules: {string.Join(", ", schedules)}");
     }
 
-End:
     if (!list.ManuallyBlocked)
     {
         Console.WriteLine($"Manual block is already disabled: {list.Name}");

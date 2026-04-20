@@ -1,23 +1,9 @@
 using System.Diagnostics;
-using SDK;
 
 namespace Daemon;
 
 public static class Blocker
 {
-
-    private static string[] BlockedUrls
-    {
-        get
-        {
-            List<string> blockedUrls = [];
-
-            foreach (var list in Config.BlockLists.Where(e => e.Active))
-                blockedUrls.AddRange(list.UrlList);
-
-            return blockedUrls.Distinct().ToArray();
-        }
-    }
 
     private static readonly string[] BROWSERS = [
         "chrome.exe", "Google Chrome", "google-chrome", "chrome",
@@ -49,6 +35,19 @@ public static class Blocker
         "Zen", "zen.exe", "zen-browser", "zen"
     ];
 
+    private static string[] BlockedUrls
+    {
+        get
+        {
+            List<string> blockedUrls = ["use-application-dns.net"];
+
+            foreach (var list in Config.BlockLists.Where(e => e.Active))
+                blockedUrls.AddRange(list.UrlList);
+
+            return blockedUrls.Distinct().ToArray();
+        }
+    }
+
     private const string REDIRECT = "0.0.0.0";
     private static string[] _previousBlockedUrls = [];
 
@@ -57,6 +56,7 @@ public static class Blocker
         // Update schedules
         UpdateSchedules();
 
+        // Skip if no changes detected
         if (BlockedUrls == _previousBlockedUrls && !force) return;
 
         // Close browsers if necessary
@@ -67,12 +67,9 @@ public static class Blocker
         }
 
         // Write new URLs
-        using StreamWriter file = new(Config.HostsPath);
+        using StreamWriter file = new(Config.Platform.HostsPath);
         file.WriteLine(Config.Get<string>("hosts"));
-
         file.WriteLine("\n# FreeBlock blocked URLs");
-        file.WriteLine($"{REDIRECT} use-application-dns.net");
-        file.WriteLine($"{REDIRECT} www.use-application-dns.net");
 
         foreach (string url in BlockedUrls)
         {
@@ -107,20 +104,8 @@ public static class Blocker
 
     private static void RefreshDns()
     {
-        if (OperatingSystem.IsLinux())
-        {
-            Run("resolvectl", "flush-caches");
-        }
-        else if (OperatingSystem.IsWindows())
-        {
-            Run("ipconfig", "/flushdns");
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            Run("dscacheutil", "-flushcache");
-            Run("killall", "-HUP mDNSResponder");
-        }
-        else throw new PlatformNotSupportedException("Only Linux, macOS and Windows are supported");
+        foreach (var commandArguments in Config.Platform.FlushDnsCommands)
+            Run(commandArguments.Key, commandArguments.Value);
     }
 
     private static void Run(string command, string arguments)

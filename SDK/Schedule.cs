@@ -1,6 +1,6 @@
 namespace SDK;
 
-public class Schedule
+public class Schedule : IName
 {
     public string Name { get; set; } = string.Empty;
     public List<BlockList> BlockLists { get; init; } = [];
@@ -21,7 +21,10 @@ public class Schedule
             else isDay = Days.Contains(now.AddDays(1).DayOfWeek);
 
             // Check time
-            bool isTime = now.TimeOfDay >= StartTime.ToTimeSpan() && now.TimeOfDay < EndTime.ToTimeSpan();
+            bool afterStartTime = now.TimeOfDay >= StartTime.ToTimeSpan();
+            bool beforeEndTime = now.TimeOfDay < EndTime.ToTimeSpan();
+            bool isTime = EndTime >= StartTime ? afterStartTime && beforeEndTime : afterStartTime || beforeEndTime;
+
             return isDay && isTime;
         }
     }

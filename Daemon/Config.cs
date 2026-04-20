@@ -7,47 +7,35 @@ namespace Daemon;
 public static class Config
 {
 
+    private static readonly JObject _values = [];
     public static List<BlockList> BlockLists { get; }
     public static List<Schedule> Schedules { get; }
-
-    private static readonly JObject _values = [];
-    public static string ConfigDirectory { get; }
-    public static string ConfigFile { get; }
-    public static string HostsPath { get; }
+    public static IPlatform Platform { get; }
 
     static Config()
     {
-        // Set hosts path
-        if (OperatingSystem.IsLinux()) HostsPath = "/etc/hosts";
-        else if (OperatingSystem.IsMacOS()) HostsPath = "/private/etc/hosts";
-        else if (OperatingSystem.IsWindows()) HostsPath = "C:/Windows/System32/drivers/etc/hosts";
+        // Set platform
+        if (OperatingSystem.IsLinux()) Platform = new Linux();
+        else if (OperatingSystem.IsMacOS()) Platform = new MacOS();
+        else if (OperatingSystem.IsWindows()) Platform = new Windows();
         else throw new PlatformNotSupportedException("Only Linux, macOS and Windows are supported");
-
-        // Set config paths
-        if (OperatingSystem.IsLinux()) ConfigDirectory = ".config/freeblock";
-        else if (OperatingSystem.IsMacOS()) ConfigDirectory = "Library/Preferences/FreeBlock";
-        else if (OperatingSystem.IsWindows()) ConfigDirectory = "AppData/Roaming/FreeBlock";
-        else throw new PlatformNotSupportedException("Only Linux, macOS and Windows are supported");
-
-        ConfigDirectory = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ConfigDirectory);
-        ConfigFile = Path.Join(ConfigDirectory, "config.json");
 
         // Create file if missing
-        if (!Path.Exists(ConfigFile))
+        if (!Path.Exists(Platform.ConfigFile))
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(ConfigFile)!);
-            using StreamWriter file = File.CreateText(ConfigFile);
+            Directory.CreateDirectory(Path.GetDirectoryName(Platform.ConfigFile)!);
+            using StreamWriter file = File.CreateText(Platform.ConfigFile);
 
             file.Write(JsonConvert.SerializeObject(new
             {
-                hosts = File.ReadAllText(HostsPath),
+                hosts = File.ReadAllText(Platform.HostsPath),
                 lists = new List<BlockList>(),
                 schedules = new List<Schedule>()
             }));
         }
 
         // Load values
-        _values = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(ConfigFile))!;
+        _values = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(Platform.ConfigFile))!;
         BlockLists = GetList<BlockList>("lists");
         Schedules = GetList<Schedule>("schedules");
     }
@@ -60,7 +48,7 @@ public static class Config
     {
         _values["lists"] = JToken.FromObject(BlockLists);
         _values["schedules"] = JToken.FromObject(Schedules);
-        File.WriteAllText(ConfigFile, _values.ToString());
+        File.WriteAllText(Platform.ConfigFile, _values.ToString());
     }
 
     private static List<T> GetList<T>(string key)

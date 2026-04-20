@@ -1,4 +1,4 @@
-﻿![FreeBlock Logo](Images/logo.png)
+![FreeBlock Logo](Images/logo.png)
 
 **FreeBlock is a free and open source CLI website blocker for Linux, macOS and Windows.**
 

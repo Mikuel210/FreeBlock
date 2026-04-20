@@ -18,8 +18,7 @@ public class CommunicationHub : Hub
         localList.UrlList.Clear();
         localList.UrlList.AddRange(list.UrlList);
 
-        Blocker.UpdateBlock();
-        Config.Save();
+        ApplyChanges();
     }
 
     public async Task RenameListAsync(BlockList list, string newName)
@@ -35,19 +34,15 @@ public class CommunicationHub : Hub
         var localList = GetLocalList(list);
         Config.BlockLists.Remove(localList);
 
-        Blocker.UpdateBlock();
-        Config.Save();
+        ApplyChanges();
     }
 
     public async Task BlockAsync(BlockList list)
     {
         var localList = GetLocalList(list);
-        var enabled = localList!.Active;
         localList!.ManuallyBlocked = true;
-        Config.Save();
 
-        if (enabled) return;
-        Blocker.UpdateBlock();
+        ApplyChanges();
     }
 
     public async Task UnblockAsync(BlockList list)
@@ -55,8 +50,7 @@ public class CommunicationHub : Hub
         var localList = GetLocalList(list);
         localList!.ManuallyBlocked = false;
 
-        Blocker.UpdateBlock();
-        Config.Save();
+        ApplyChanges();
     }
 
     public async Task LockAsync(BlockList list, DateTime unlockTime)
@@ -64,8 +58,7 @@ public class CommunicationHub : Hub
         var localList = GetLocalList(list);
         localList.UnlockTime = unlockTime;
 
-        Blocker.UpdateBlock();
-        Config.Save();
+        ApplyChanges();
     }
 
     public async Task AddScheduleAsync(Schedule schedule)
@@ -81,6 +74,12 @@ public class CommunicationHub : Hub
         Config.Save();
     }
 
+    private static void ApplyChanges()
+    {
+        Blocker.UpdateBlock();
+        Config.Save();
+    }
+
     public async Task<BlockList[]> GetBlockListsAsync()
         => Config.BlockLists.ToArray();
 
@@ -88,15 +87,21 @@ public class CommunicationHub : Hub
         => Config.Schedules.ToArray();
 
     public async Task<BlockList?> GetListFromNameAsync(string name)
-        => Config.BlockLists.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+        => GetFromName(Config.BlockLists, name);
 
     public async Task<Schedule?> GetScheduleFromNameAsync(string name)
-        => Config.Schedules.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+        => GetFromName(Config.Schedules, name);
 
     private BlockList GetLocalList(BlockList clientList)
-        => Config.BlockLists.First(e => e.Name.Equals(clientList.Name, StringComparison.InvariantCultureIgnoreCase));
+        => GetLocal(Config.BlockLists, clientList);
 
     private Schedule GetLocalSchedule(Schedule clientSchedule)
-        => Config.Schedules.First(e => e.Name.Equals(clientSchedule.Name, StringComparison.InvariantCultureIgnoreCase));
+        => GetLocal(Config.Schedules, clientSchedule);
+
+    private T? GetFromName<T>(List<T> list, string name) where T : IName
+    => list.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+
+    private T GetLocal<T>(List<T> list, T client) where T : IName
+        => list.First(e => e.Name.Equals(client.Name, StringComparison.InvariantCultureIgnoreCase));
 
 }
