@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
+using Daemon;
 using SDK;
 using CLI;
 
@@ -118,8 +119,8 @@ void ShowHelp()
 
 async Task ShowStatus()
 {
-    var lists = await ConnectionManager.Connection!.InvokeAsync<BlockList[]>("GetBlockListsAsync");
-    var schedules = await ConnectionManager.Connection!.InvokeAsync<Schedule[]>("GetSchedulesAsync");
+    var lists = await ConnectionManager.Connection!.InvokeAsync<BlockList[]>(nameof(CommunicationHub.GetBlockListsAsync));
+    var schedules = await ConnectionManager.Connection!.InvokeAsync<Schedule[]>(nameof(CommunicationHub.GetSchedulesAsync));
 
     if (lists.Length == 0 && schedules.Length == 0)
     {
@@ -242,7 +243,7 @@ async Task RemoveList(ListArgument argument)
     var list = argument.Value!;
 
     var schedules = (await ConnectionManager.Connection!
-        .InvokeAsync<Schedule[]>("GetSchedulesAsync"))
+        .InvokeAsync<Schedule[]>(nameof(CommunicationHub.GetSchedulesAsync)))
         .Where(e => e.BlockLists
             .Select(e => e.Name)
             .Contains(list.Name));
@@ -268,7 +269,20 @@ async Task Block(ListArgument argument)
     var list = argument.Value!;
 
     if (list.Locked) ConsoleUtils.Note($"The list was already active as it's locked until {list.UnlockTime}");
-    if (list.Scheduled) ConsoleUtils.Note("The list was already blocked by an active schedule");
+
+    if (list.Scheduled)
+    {
+        var schedules = (await ConnectionManager.Connection!
+            .InvokeAsync<Schedule[]>(nameof(CommunicationHub.GetSchedulesAsync)))
+            .Where(e => e.BlockLists
+                .Select(e => e.Name)
+                .Contains(list.Name) && e.Active)
+            .Select(e => e.Name)
+            .ToList();
+
+        if (schedules.Count == 1) ConsoleUtils.Warning($"The list remains blocked by an active schedule: {schedules.First()}");
+        else if (schedules.Count != 0) ConsoleUtils.Warning($"The list remains blocked by active schedules: {string.Join(", ", schedules)}");
+    }
 
     if (list.ManuallyBlocked)
     {
@@ -290,7 +304,7 @@ async Task Unblock(ListArgument argument)
     if (list.Scheduled)
     {
         var schedules = (await ConnectionManager.Connection!
-            .InvokeAsync<Schedule[]>("GetSchedulesAsync"))
+            .InvokeAsync<Schedule[]>(nameof(CommunicationHub.GetSchedulesAsync)))
             .Where(e => e.BlockLists
                 .Select(e => e.Name)
                 .Contains(list.Name) && e.Active)

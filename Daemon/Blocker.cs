@@ -1,13 +1,17 @@
 using System.Diagnostics;
+using SDK;
 
 namespace Daemon;
 
 public static class Blocker
 {
 
+    private const string REDIRECT = "0.0.0.0";
+
+    // TODO: Firefox
     private static readonly string[] BROWSERS = [
         "chrome.exe", "Google Chrome", "google-chrome", "chrome",
-        "firefox.exe", "firefox", "firefox-bin",
+        //"firefox.exe", "firefox", "firefox-bin",
         "msedge.exe", "Microsoft Edge", "microsoft-edge",
         "Safari",
         "opera.exe", "Opera", "opera",
@@ -39,37 +43,52 @@ public static class Blocker
     {
         get
         {
-            List<string> blockedUrls = ["use-application-dns.net"];
+            List<string> blockedUrls = [];
 
-            foreach (var list in Config.BlockLists.Where(e => e.Active))
+            foreach (var list in State.BlockLists.Where(e => e.Active))
                 blockedUrls.AddRange(list.UrlList);
 
             return blockedUrls.Distinct().ToArray();
         }
     }
 
-    private const string REDIRECT = "0.0.0.0";
-    private static string[] _previousBlockedUrls = [];
+    private static string[] _previousBlockedUrls;
 
-    public static void UpdateBlock(bool force = false)
+    static Blocker()
     {
-        // Update schedules
-        UpdateSchedules();
+        List<string> urls = [];
+        var lines = File.ReadAllLines(Platform.HostsPath);
 
+        foreach (var line in lines)
+        {
+            if (line.StartsWith(REDIRECT))
+                urls.Add(line[REDIRECT.Length..].SanitizeUrl());
+        }
+
+        _previousBlockedUrls = urls.Distinct().ToArray();
+    }
+
+
+    public static async Task UpdateAsync()
+    {
         // Skip if no changes detected
-        if (BlockedUrls == _previousBlockedUrls && !force) return;
+        if (BlockedUrls == _previousBlockedUrls) return;
 
         // Close browsers if necessary
         foreach (string url in BlockedUrls)
         {
             if (_previousBlockedUrls.Contains(url)) continue;
+
             CloseBrowsers();
+            break;
         }
 
         // Write new URLs
-        using StreamWriter file = new(Config.Platform.HostsPath);
-        file.WriteLine(Config.Get<string>("hosts"));
+        using StreamWriter file = new(Platform.HostsPath);
+        file.WriteLine(Config.Get<string>(nameof(Config.DefaultValue.hosts)));
+
         file.WriteLine("\n# FreeBlock blocked URLs");
+        file.WriteLine($"{REDIRECT} use-application-dns.net");
 
         foreach (string url in BlockedUrls)
         {
@@ -77,8 +96,8 @@ public static class Blocker
             file.WriteLine($"{REDIRECT} www.{url}");
         }
 
-        // Refresh DNS
-        RefreshDns();
+        // Flush DNS
+        _ = Platform.FlushDns.Run();
         _previousBlockedUrls = BlockedUrls;
     }
 
@@ -87,38 +106,6 @@ public static class Blocker
         Process[] processes = Process.GetProcesses();
         Process[] browsers = processes.Where(e => BROWSERS.Contains(e.ProcessName)).ToArray();
         browsers.ToList().ForEach(e => e.Kill());
-    }
-
-    private static void UpdateSchedules()
-    {
-        foreach (var list in Config.BlockLists)
-        {
-            list.Scheduled = Config.Schedules
-                .FirstOrDefault(e =>
-                {
-                    var containsList = e.BlockLists.Select(e => e.Name).Contains(list.Name);
-                    return containsList && e.Active;
-                }) != null;
-        }
-    }
-
-    private static void RefreshDns()
-    {
-        foreach (var commandArguments in Config.Platform.FlushDnsCommands)
-            Run(commandArguments.Key, commandArguments.Value);
-    }
-
-    private static void Run(string command, string arguments)
-    {
-        Task.Run(() =>
-        {
-            var process = new Process();
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.FileName = command;
-            process.StartInfo.Arguments = arguments;
-            process.Start();
-        });
     }
 
 }

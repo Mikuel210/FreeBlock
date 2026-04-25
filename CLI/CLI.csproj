@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SDK\SDK.csproj" />
+    <ProjectReference Include="..\Daemon\Daemon.csproj" />
   </ItemGroup>
 
 </Project>

@@ -66,6 +66,10 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 - [x] Timers
 - [x] Editing lists
 - [x] Schedules
+- [ ] Editing schedules
+- [ ] Requesting schedule removal
+- [ ] Better onboarding
+- [ ] macOS and Windows builds
 - [ ] Preventing known workarounds
 - [ ] Blocking apps
 - [ ] GUI Implementation

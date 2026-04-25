@@ -1,7 +1,8 @@
 namespace SDK;
 
-public class Schedule : IName
+public class Schedule : IStateObject
 {
+
     public string Name { get; set; } = string.Empty;
     public List<BlockList> BlockLists { get; init; } = [];
 
@@ -9,23 +10,23 @@ public class Schedule : IName
     public TimeOnly EndTime { get; set; }
     public DayOfWeek[] Days { get; set; } = [];
 
-    public bool Active
+    public bool Active => IsActive(StartTime, EndTime, Days);
+
+    public static bool IsActive(TimeOnly startTime, TimeOnly endTime, DayOfWeek[] days)
     {
-        get
-        {
-            var now = DateTime.Now;
-            bool isDay;
+        var now = DateTime.Now;
+        bool isDay;
 
-            // Check day
-            if (EndTime >= StartTime || now.TimeOfDay >= StartTime.ToTimeSpan()) isDay = Days.Contains(now.DayOfWeek);
-            else isDay = Days.Contains(now.AddDays(1).DayOfWeek);
+        // Check day
+        if (endTime >= startTime || now.TimeOfDay >= startTime.ToTimeSpan()) isDay = days.Contains(now.DayOfWeek);
+        else isDay = days.Contains(now.AddDays(1).DayOfWeek);
 
-            // Check time
-            bool afterStartTime = now.TimeOfDay >= StartTime.ToTimeSpan();
-            bool beforeEndTime = now.TimeOfDay < EndTime.ToTimeSpan();
-            bool isTime = EndTime >= StartTime ? afterStartTime && beforeEndTime : afterStartTime || beforeEndTime;
+        // Check time
+        bool afterStartTime = now.TimeOfDay >= startTime.ToTimeSpan();
+        bool beforeEndTime = now.TimeOfDay < endTime.ToTimeSpan();
+        bool isTime = endTime >= startTime ? afterStartTime && beforeEndTime : afterStartTime || beforeEndTime;
 
-            return isDay && isTime;
-        }
+        return isDay && isTime;
     }
+
 }

@@ -8,8 +8,8 @@ public class CommunicationHub : Hub
 
     public async Task AddListAsync(BlockList list)
     {
-        Config.BlockLists.Add(list);
-        Config.Save();
+        State.BlockLists.Add(list);
+        State.Save();
     }
 
     public async Task EditListAsync(BlockList list)
@@ -18,7 +18,7 @@ public class CommunicationHub : Hub
         localList.UrlList.Clear();
         localList.UrlList.AddRange(list.UrlList);
 
-        ApplyChanges();
+        await ApplyChanges();
     }
 
     public async Task RenameListAsync(BlockList list, string newName)
@@ -26,15 +26,15 @@ public class CommunicationHub : Hub
         var localList = GetLocalList(list);
         localList.Name = newName;
 
-        Config.Save();
+        State.Save();
     }
 
     public async Task RemoveListAsync(BlockList list)
     {
         var localList = GetLocalList(list);
-        Config.BlockLists.Remove(localList);
+        State.BlockLists.Remove(localList);
 
-        ApplyChanges();
+        await ApplyChanges();
     }
 
     public async Task BlockAsync(BlockList list)
@@ -42,7 +42,7 @@ public class CommunicationHub : Hub
         var localList = GetLocalList(list);
         localList!.ManuallyBlocked = true;
 
-        ApplyChanges();
+        await ApplyChanges();
     }
 
     public async Task UnblockAsync(BlockList list)
@@ -50,7 +50,7 @@ public class CommunicationHub : Hub
         var localList = GetLocalList(list);
         localList!.ManuallyBlocked = false;
 
-        ApplyChanges();
+        await ApplyChanges();
     }
 
     public async Task LockAsync(BlockList list, DateTime unlockTime)
@@ -58,50 +58,52 @@ public class CommunicationHub : Hub
         var localList = GetLocalList(list);
         localList.UnlockTime = unlockTime;
 
-        ApplyChanges();
+        await ApplyChanges();
     }
 
     public async Task AddScheduleAsync(Schedule schedule)
     {
-        Config.Schedules.Add(schedule);
-        Config.Save();
+        State.Schedules.Add(schedule);
+        State.Save();
     }
 
     public async Task RemoveScheduleAsync(Schedule schedule)
     {
         var localSchedule = GetLocalSchedule(schedule);
-        Config.Schedules.Remove(localSchedule);
-        Config.Save();
+        State.Schedules.Remove(localSchedule);
+        State.Save();
     }
 
-    private static void ApplyChanges()
+    private static async Task ApplyChanges()
     {
-        Blocker.UpdateBlock();
-        Config.Save();
+        await Blocker.UpdateAsync();
+        State.Save();
     }
+
 
     public async Task<BlockList[]> GetBlockListsAsync()
-        => Config.BlockLists.ToArray();
+        => State.BlockLists.ToArray();
 
     public async Task<Schedule[]> GetSchedulesAsync()
-        => Config.Schedules.ToArray();
+        => State.Schedules.ToArray();
 
     public async Task<BlockList?> GetListFromNameAsync(string name)
-        => GetFromName(Config.BlockLists, name);
+        => GetFromName(State.BlockLists, name);
 
     public async Task<Schedule?> GetScheduleFromNameAsync(string name)
-        => GetFromName(Config.Schedules, name);
+        => GetFromName(State.Schedules, name);
 
-    private BlockList GetLocalList(BlockList clientList)
-        => GetLocal(Config.BlockLists, clientList);
 
-    private Schedule GetLocalSchedule(Schedule clientSchedule)
-        => GetLocal(Config.Schedules, clientSchedule);
+    private static BlockList GetLocalList(BlockList clientList)
+        => GetLocal(State.BlockLists, clientList);
 
-    private T? GetFromName<T>(List<T> list, string name) where T : IName
+    private static Schedule GetLocalSchedule(Schedule clientSchedule)
+        => GetLocal(State.Schedules, clientSchedule);
+
+    private static T? GetFromName<T>(List<T> list, string name) where T : IStateObject
     => list.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
 
-    private T GetLocal<T>(List<T> list, T client) where T : IName
+    private static T GetLocal<T>(List<T> list, T client) where T : IStateObject
         => list.First(e => e.Name.Equals(client.Name, StringComparison.InvariantCultureIgnoreCase));
 
 }

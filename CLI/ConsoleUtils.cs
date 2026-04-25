@@ -47,16 +47,7 @@ public static class ConsoleUtils
         lines = lines.Where(e => !string.IsNullOrWhiteSpace(e)).ToArray();
 
         for (int i = 0; i < lines.Length; i++)
-        {
-            lines[i] = lines[i].Trim();
-            var line = lines[i];
-
-            if (line.StartsWith("https://")) lines[i] = line[8..];
-            if (line.StartsWith("http://")) lines[i] = line[7..];
-
-            line = lines[i];
-            if (line.StartsWith("www.")) lines[i] = line[4..];
-        }
+            lines[i] = lines[i].SanitizeUrl();
 
         lines = lines.Distinct().ToArray();
 
