@@ -8,10 +8,9 @@ public static class Blocker
 
     private const string REDIRECT = "0.0.0.0";
 
-    // TODO: Firefox
     private static readonly string[] BROWSERS = [
         "chrome.exe", "Google Chrome", "google-chrome", "chrome",
-        //"firefox.exe", "firefox", "firefox-bin",
+        "firefox.exe", "firefox", "firefox-bin",
         "msedge.exe", "Microsoft Edge", "microsoft-edge",
         "Safari",
         "opera.exe", "Opera", "opera",

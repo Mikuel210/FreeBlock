@@ -14,8 +14,6 @@ public static class Platform
 
     // Commands
     public static CommandAction FlushDns { get; }
-    public static CommandAction AddImmutable { get; }
-    public static CommandAction RemoveImmutable { get; }
     public static CommandAction SendNotification { get; }
     public static Func<string[]> GetCurrentUsers { get; }
 
@@ -23,12 +21,12 @@ public static class Platform
     {
         if (OperatingSystem.IsLinux())
         {
+            // Paths
             HostsPath = "/home/duna/etc/hosts";
             _configDirectoryRelative = ".config/freeblock";
-            FlushDns = new(new() { { "resolvectl", "flush-caches" }, { "systemd-resolve", "--flush-caches" } });
-            AddImmutable = new(new() { { "chattr", "+i {0}" } });
-            RemoveImmutable = new(new() { { "chattr", "-i {0}" } });
 
+            // Commands
+            FlushDns = new(new() { { "resolvectl", "flush-caches" }, { "systemd-resolve", "--flush-caches" } });
             GetCurrentUsers = () => Directory.GetDirectories("/run/user").Select(Path.GetFileName).ToArray()!;
 
             SendNotification = new(
@@ -55,20 +53,26 @@ public static class Platform
 
         else if (OperatingSystem.IsMacOS())
         {
+            // Paths
             HostsPath = "/private/etc/hosts";
             _configDirectoryRelative = "Library/Preferences/FreeBlock";
+
+            // Commands
             FlushDns = new(new() { { "dscacheutil", "-flushcache" }, { "killall", "-HUP mDNSResponder" } });
-            AddImmutable = new(new() { { "chflags", "schg {0}" } });
-            RemoveImmutable = new(new() { { "chflags", "noschg {0}" } });
+            GetCurrentUsers = () => [];
+            SendNotification = new([]);
         }
 
         else if (OperatingSystem.IsWindows())
         {
+            // Paths
             HostsPath = "C:/Windows/System32/drivers/etc/hosts";
             _configDirectoryRelative = "AppData/Roaming/FreeBlock";
+
+            // Commands
             FlushDns = new(new() { { "ipconfig", "/flushdns" } });
-            AddImmutable = new(new() { { "attrib", "+r {0}" } });
-            RemoveImmutable = new(new() { { "attrib", "-r {0}" } });
+            GetCurrentUsers = () => [];
+            SendNotification = new([]);
         }
 
         else throw new PlatformNotSupportedException();
