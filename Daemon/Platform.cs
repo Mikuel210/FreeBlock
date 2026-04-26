@@ -22,7 +22,7 @@ public static class Platform
         if (OperatingSystem.IsLinux())
         {
             // Paths
-            HostsPath = "/home/duna/etc/hosts";
+            HostsPath = "/etc/hosts";
             _configDirectoryRelative = ".config/freeblock";
 
             // Commands

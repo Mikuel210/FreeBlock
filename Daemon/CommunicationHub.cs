@@ -67,6 +67,14 @@ public class CommunicationHub : Hub
         State.Save();
     }
 
+    public async Task RenameScheduleAsync(Schedule schedule, string newName)
+    {
+        var localSchedule = GetLocalSchedule(schedule);
+        localSchedule.Name = newName;
+
+        State.Save();
+    }
+
     public async Task RemoveScheduleAsync(Schedule schedule)
     {
         var localSchedule = GetLocalSchedule(schedule);

@@ -15,7 +15,7 @@ public static class CommandSystem
         if (command == null)
         {
             Console.WriteLine($"Command not found: freeblock {string.Join(" ", args)}");
-            Console.WriteLine("See: freeblock help");
+            Console.WriteLine("See: freeblock --help");
             return;
         }
 
