@@ -138,11 +138,13 @@ Fast-forward to 9:59pm and I've received a notification warning me that the sche
 
 After the minute has passed, if I now run `freeblock status`, I will see the schedule is enabled and the list is enabled as well due to the schedule being active.
 
+![](Images/Tutorial16.png)
+
 ## Removing Schedules
 
 To remove a schedule, use `freeblock schedule remove [name]`. Note that you can't remove a schedule if it's active.
 
-![](Images/Tutorial16.png)
+![](Images/Tutorial17.png)
 
 ## Summary
 
