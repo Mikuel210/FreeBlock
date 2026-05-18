@@ -76,7 +76,7 @@ If you now run `freeblock status`, the list will appear as enabled. It will also
 
 ## Unblocking Lists
 
-To unblock the list, use `freeblock unblock [list]`. This command doesn't require for all browsers to be closed, and you should be able to visit the previously blocked websites immediately.
+To unblock the list, use `freeblock unblock [list]`. This command doesn't require for all browsers to be closed, and you should be able to use the previously blocked apps and websites immediately.
 
 > Note that `freeblock unblock` may not necessarily disable a list as it might remain enabled by timed locks or schedules
 
@@ -88,9 +88,9 @@ If you now run `freeblock status`, the list will appear as disabled.
 
 ## Editing Lists
 
-To edit a list, use `freeblock list edit [list]`. This will open the list file for you to add or remove websites.
+To edit a list, use `freeblock list edit [list]`. This will open the list file for you to add or remove apps and websites.
 
-> Note that removing websites while a list is active is not allowed
+> Note that removing apps or websites while a list is active is not allowed
 
 ![](Images/Tutorial10.png)
 
@@ -114,7 +114,7 @@ Let's try locking the list we created previously by running `freeblock lock [lis
 
 ![](Images/Tutorial13.png)
 
-> Note: This command also requires for all browsers to close in the case the list wasn't already active.
+> Note: This command also requires for all browsers and blocked apps to close in the case the list wasn't already active.
 
 If you now run `freeblock status`, the list will appear as enabled and locked until a minute from now.
 
@@ -122,7 +122,7 @@ If you now run `freeblock status`, the list will appear as enabled and locked un
 
 ## Creating Schedules
 
-Schedules enable lists automatically in certain time periods. Let's try creating one in order to block distracting websites at night. To do that, we will use the `freeblock schedule add [name] [lists] [start] [end] [days]` command.
+Schedules enable lists automatically in certain time periods. Let's try creating one in order to block distracting apps and websites at night. To do that, we will use the `freeblock schedule add [name] [lists] [start] [end] [days]` command.
 
 ### Arguments
 
@@ -162,7 +162,7 @@ To remove a schedule, use `freeblock schedule remove [name]`. Note that you can'
 
 - `freeblock -h, --help`: Show all available commands.
 - `freeblock status`: Show the current status of block lists and schedules, where green means active.
-- `freeblock list add`: Create a new block list. Type one website or app to block per line.
+- `freeblock list add`: Create a new block list. Type one app or website to block per line.
 - `freeblock list edit`: Edit the websites of a block list. Removing websites while the list is active is not allowed.
 - `freeblock list rename`: Rename a block list.
 - `freeblock list remove`: Remove a block list. Removing lists while they're active is not allowed.

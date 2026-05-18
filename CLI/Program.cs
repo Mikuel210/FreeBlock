@@ -117,7 +117,7 @@ void ShowHelp()
                       Available commands:
                       freeblock -h, --help       Show all available commands.
                       freeblock status           Show the current status of block lists and schedules, where green means active.
-                      freeblock list add         Create a new block list. Type one website or app to block per line.
+                      freeblock list add         Create a new block list. Type one app or website to block per line.
                       freeblock list edit        Edit the websites of a block list. Removing websites while the list is active is not allowed.
                       freeblock list rename      Rename a block list.
                       freeblock list remove      Remove a block list. Removing lists while they're active is not allowed.

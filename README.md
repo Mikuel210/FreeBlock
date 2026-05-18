@@ -16,7 +16,7 @@
 
 ## About
 
-FreeBlock is a cross-platform website blocker that helps you focus by managing access to distracting apps and websites. It is common knowledge at this point that multi-million dollar companies are actively fighting for our time, focus and attention; yet most people have come to accept it. For this reason, I believe it is now more important than ever to take control over how we use technology in order to focus on what actually matters to us. I built FreeBlock out of a real struggle with focus, and a lack of free tools to help me that fit my needs.
+FreeBlock is a cross-platform blocker that helps you focus by managing access to distracting apps and websites. It is common knowledge at this point that multi-million dollar companies are actively fighting for our time, focus and attention; yet most people have come to accept it. For this reason, I believe it is now more important than ever to take control over how we use technology in order to focus on what actually matters to us. I built FreeBlock out of a real struggle with focus, and a lack of free tools to help me that fit my needs.
 
 ## Key Features
 
@@ -31,7 +31,7 @@ FreeBlock is a cross-platform website blocker that helps you focus by managing a
 
 - `freeblock -h, --help`: Show all available commands.
 - `freeblock status`: Show the current status of block lists and schedules, where green means active.
-- `freeblock list add`: Create a new block list. Type one website or app to block per line.
+- `freeblock list add`: Create a new block list. Type one app or website to block per line.
 - `freeblock list edit`: Edit the websites of a block list. Removing websites while the list is active is not allowed.
 - `freeblock list rename`: Rename a block list.
 - `freeblock list remove`: Remove a block list. Removing lists while they're active is not allowed.
@@ -81,3 +81,7 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 - [ ] Preventing known workarounds
 - [ ] Self hosting (sync across devices)
 - [ ] GUI Implementation
+
+---
+
+Made with ❤️ for Horizons thanks to Hack Club
