@@ -26,6 +26,9 @@ public static class ConsoleUtils
         }
     }
 
+    public static bool PromptClose(bool disableWriteLine = false) 
+        => PromptYesNo($"This will close all browsers and all blocked apps. Okay to continue?", true, disableWriteLine);
+
     public static void Note(string message) => TitledMessage("Note", message, ConsoleColor.Blue);
     public static void Warning(string message) => TitledMessage("Warning", message, ConsoleColor.Yellow);
     public static void Error(string message) => TitledMessage("Error", message, ConsoleColor.Red);
@@ -34,7 +37,7 @@ public static class ConsoleUtils
     {
         // Initialize file
         var path = Path.GetTempFileName();
-        File.WriteAllLines(path, list.UrlList);
+        File.WriteAllLines(path, list.Entries);
 
         // Start editor
         using var process = StartEditor(path);
@@ -52,8 +55,8 @@ public static class ConsoleUtils
         lines = lines.Distinct().ToArray();
 
         // Update list
-        list.UrlList.Clear();
-        list.UrlList.AddRange(lines);
+        list.Entries.Clear();
+        list.Entries.AddRange(lines);
 
         // Remove file
         File.Delete(path);

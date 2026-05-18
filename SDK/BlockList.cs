@@ -1,9 +1,11 @@
+using Newtonsoft.Json;
+
 namespace SDK;
 
 public class BlockList : IStateObject
 {
     public string Name { get; set; } = string.Empty;
-    public List<string> UrlList { get; init; } = [];
+    [JsonProperty("UrlList")] public List<string> Entries { get; init; } = [];
     public bool ManuallyBlocked { get; set; }
     public bool Active => ManuallyBlocked || Locked || Scheduled;
 

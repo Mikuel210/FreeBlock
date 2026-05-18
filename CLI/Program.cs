@@ -117,7 +117,7 @@ void ShowHelp()
                       Available commands:
                       freeblock -h, --help       Show all available commands.
                       freeblock status           Show the current status of block lists and schedules, where green means active.
-                      freeblock list add         Create a new block list. Type one website to block per line.
+                      freeblock list add         Create a new block list. Type one website or app to block per line.
                       freeblock list edit        Edit the websites of a block list. Removing websites while the list is active is not allowed.
                       freeblock list rename      Rename a block list.
                       freeblock list remove      Remove a block list. Removing lists while they're active is not allowed.
@@ -204,7 +204,7 @@ async Task AddList(AddListArgument argument)
 async Task EditList(ListArgument argument)
 {
     var list = argument.Value!;
-    var previousUrls = list.UrlList.ToList();
+    var previousEntries = list.Entries.ToList();
 
     Console.WriteLine("Waiting for your editor to close the file...");
     await ConsoleUtils.EditList(list);
@@ -212,12 +212,12 @@ async Task EditList(ListArgument argument)
     if (list.Active)
     {
         // Close browsers
-        foreach (string url in list.UrlList)
+        foreach (string entry in list.Entries)
         {
-            if (previousUrls.Contains(url)) continue;
+            if (previousEntries.Contains(entry)) continue;
 
             Console.WriteLine();
-            if (!ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?", true, true)) return;
+            if (!ConsoleUtils.PromptClose(true)) return;
 
             break;
         }
@@ -225,11 +225,11 @@ async Task EditList(ListArgument argument)
         // Revert removed websites
         bool showWarning = false;
 
-        foreach (string url in previousUrls)
+        foreach (string entry in previousEntries)
         {
-            if (list.UrlList.Contains(url)) continue;
+            if (list.Entries.Contains(entry)) continue;
 
-            list.UrlList.Add(url);
+            list.Entries.Add(entry);
             showWarning = true;
         }
 
@@ -303,7 +303,7 @@ async Task Block(ListArgument argument)
         return;
     }
 
-    if (!list.Active && !ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?")) return;
+    if (!list.Active && !ConsoleUtils.PromptClose()) return;
 
     await ConnectionManager.Connection!.InvokeAsync("BlockAsync", list);
     Console.WriteLine($"Enabled manual block: {list.Name}");
@@ -351,7 +351,7 @@ async Task Lock(ListArgument listArgument, TimeArgument timeArgument)
     }
 
     var prompt = $"This will block {list.Name} for {time}";
-    if (!list.Active) prompt += " and close all browser windows to refresh blocking";
+    if (!list.Active) prompt += " and close all browsers and all blocked apps";
     prompt += ". Okay to continue?";
 
     if (!ConsoleUtils.PromptYesNo(prompt)) return;
@@ -371,7 +371,7 @@ async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListAr
         Days = days.Value!
     };
 
-    if (schedule.Active && !ConsoleUtils.PromptYesNo("This will close all browser windows to refresh blocking. Okay to continue?")) return;
+    if (schedule.Active && !ConsoleUtils.PromptClose()) return;
 
     await ConnectionManager.Connection!.InvokeAsync("AddScheduleAsync", schedule);
     Console.WriteLine($"Added schedule: {schedule.Name}");

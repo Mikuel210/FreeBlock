@@ -1,6 +1,6 @@
 ![FreeBlock Logo](Images/logo.png)
 
-**FreeBlock is a free and open source CLI website blocker for Linux, macOS and Windows.**
+**FreeBlock is a free and open source CLI website and app blocker for Linux, macOS and Windows.**
 
 ![FreeBlock Screenshot](Images/Screenshot.png)
 
@@ -16,14 +16,14 @@
 
 ## About
 
-FreeBlock is a cross-platform website blocker that helps you focus by managing access to distracting websites. It is common knowledge at this point that multi-million dollar companies are actively fighting for our time, focus and attention; yet most people have come to accept it. For this reason, I believe it is now more important than ever to take control over how we use technology in order to focus on what actually matters to us. I built FreeBlock out of a real struggle with focus, and a lack of free tools to help me that fit my needs.
+FreeBlock is a cross-platform website blocker that helps you focus by managing access to distracting apps and websites. It is common knowledge at this point that multi-million dollar companies are actively fighting for our time, focus and attention; yet most people have come to accept it. For this reason, I believe it is now more important than ever to take control over how we use technology in order to focus on what actually matters to us. I built FreeBlock out of a real struggle with focus, and a lack of free tools to help me that fit my needs.
 
 ## Key Features
 
 - **Manual blocking:** Create block lists and block them manually
 - **Timed locks:** Prevent disabling lists until a timer runs out
 - **Scheduled blocking:** Create schedules to enable lists automatically
-- **No setup:** Supports all browsers with no setup out of the box
+- **No setup:** Supports all browsers and apps with no setup out of the box
 - **Cross-platform:** Supports Linux, macOS and Windows
 - **No workarounds:** Once you block a list, there's no way to bypass it
 
@@ -31,7 +31,7 @@ FreeBlock is a cross-platform website blocker that helps you focus by managing a
 
 - `freeblock -h, --help`: Show all available commands.
 - `freeblock status`: Show the current status of block lists and schedules, where green means active.
-- `freeblock list add`: Create a new block list. Type one website to block per line.
+- `freeblock list add`: Create a new block list. Type one website or app to block per line.
 - `freeblock list edit`: Edit the websites of a block list. Removing websites while the list is active is not allowed.
 - `freeblock list rename`: Rename a block list.
 - `freeblock list remove`: Remove a block list. Removing lists while they're active is not allowed.
@@ -74,10 +74,10 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 - [x] Editing lists
 - [x] Schedules
 - [x] Better onboarding
+- [x] Blocking apps
 - [ ] Editing schedules
 - [ ] Requesting schedule removal
 - [ ] macOS and Windows builds
 - [ ] Preventing known workarounds
-- [ ] Blocking apps
 - [ ] Self hosting (sync across devices)
 - [ ] GUI Implementation

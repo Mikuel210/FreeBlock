@@ -38,20 +38,20 @@ public static class Blocker
         "Zen", "zen.exe", "zen-browser", "zen"
     ];
 
-    private static string[] BlockedUrls
+    private static string[] BlockedEntries
     {
         get
         {
-            List<string> blockedUrls = [];
+            List<string> blockedEntries = [];
 
             foreach (var list in State.BlockLists.Where(e => e.Active))
-                blockedUrls.AddRange(list.UrlList);
+                blockedEntries.AddRange(list.Entries);
 
-            return blockedUrls.Distinct().ToArray();
+            return blockedEntries.Distinct().ToArray();
         }
     }
 
-    private static string[] _previousBlockedUrls;
+    private static string[] _previousBlockedEntries;
 
     static Blocker()
     {
@@ -64,19 +64,21 @@ public static class Blocker
                 urls.Add(line[REDIRECT.Length..].SanitizeUrl());
         }
 
-        _previousBlockedUrls = urls.Distinct().ToArray();
+        _previousBlockedEntries = urls.Distinct().ToArray();
     }
 
 
     public static async Task UpdateAsync()
     {
+        await CloseApps();
+
         // Skip if no changes detected
-        if (BlockedUrls == _previousBlockedUrls) return;
+        if (BlockedEntries == _previousBlockedEntries) return;
 
         // Close browsers if necessary
-        foreach (string url in BlockedUrls)
+        foreach (string entry in BlockedEntries)
         {
-            if (_previousBlockedUrls.Contains(url)) continue;
+            if (_previousBlockedEntries.Contains(entry)) continue;
 
             CloseBrowsers();
             break;
@@ -89,7 +91,7 @@ public static class Blocker
         file.WriteLine("\n# FreeBlock blocked URLs");
         file.WriteLine($"{REDIRECT} use-application-dns.net");
 
-        foreach (string url in BlockedUrls)
+        foreach (string url in BlockedEntries)
         {
             file.WriteLine($"{REDIRECT} {url}");
             file.WriteLine($"{REDIRECT} www.{url}");
@@ -97,14 +99,30 @@ public static class Blocker
 
         // Flush DNS
         _ = Platform.FlushDns.Run();
-        _previousBlockedUrls = BlockedUrls;
+        _previousBlockedEntries = BlockedEntries;
     }
 
     public static void CloseBrowsers()
     {
-        Process[] processes = Process.GetProcesses();
-        Process[] browsers = processes.Where(e => BROWSERS.Contains(e.ProcessName)).ToArray();
-        browsers.ToList().ForEach(e => e.Kill());
+        Process.GetProcesses()
+            .Where(e => BROWSERS.Contains(e.ProcessName))
+            .ToList().ForEach(e => e.Kill());
+    }
+
+    public static async Task CloseApps()
+    {
+        var apps = Process.GetProcesses().Where(e => BlockedEntries.Contains(e.ProcessName)).ToList();
+        if (apps.Count == 0) return;
+
+        apps.ForEach(e => e.Kill());
+
+        // Send notification
+        var appNames = apps.Select(e => e.ProcessName).Distinct().ToArray();
+        string title = $"App{(appNames.Length == 1 ? "" : "s")} closed by FreeBlock";
+        string body = string.Join(", ", appNames);
+
+        foreach (var user in Platform.GetCurrentUsers())
+            await Platform.SendNotification.Run(user, title, body);
     }
 
 }

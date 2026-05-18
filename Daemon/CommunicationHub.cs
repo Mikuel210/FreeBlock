@@ -15,8 +15,8 @@ public class CommunicationHub : Hub
     public async Task EditListAsync(BlockList list)
     {
         var localList = GetLocalList(list);
-        localList.UrlList.Clear();
-        localList.UrlList.AddRange(list.UrlList);
+        localList.Entries.Clear();
+        localList.Entries.AddRange(list.Entries);
 
         await ApplyChanges();
     }

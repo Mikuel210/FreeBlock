@@ -13,7 +13,7 @@ public static class NotificationManager
             var endTime = startTime.Add(TimeSpan.FromSeconds(1));
 
             if (!Schedule.IsActive(startTime, schedule.EndTime, schedule.Days) || Schedule.IsActive(endTime, schedule.EndTime, schedule.Days)) continue;
-            await NotifyAsync($"Schedule starting soon: {schedule.Name}", "All browsers will close in 1 minute");
+            await NotifyAsync($"Schedule starting soon: {schedule.Name}", "All browsers and all blocked apps will close in 1 minute");
         }
     }
 
