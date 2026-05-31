@@ -164,9 +164,10 @@ async Task ShowStatus()
         string daysString;
 
         // Get days strings
-        if (schedule.Days.SequenceEqual(Enum.GetValues<DayOfWeek>())) daysString = "all";
-        else if (schedule.Days.SequenceEqual([DayOfWeek.Saturday, DayOfWeek.Sunday])) daysString = "weekdays";
-
+        if (schedule.Days.SequenceEqual(Enum.GetValues<DayOfWeek>())) 
+            daysString = "all";
+        else if (schedule.Days.SequenceEqual([DayOfWeek.Saturday, DayOfWeek.Sunday]))
+            daysString = "weekends";
         else if (schedule.Days.SequenceEqual([DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]))
             daysString = "weekdays";
 

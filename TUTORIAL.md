@@ -1,4 +1,4 @@
-![FreeBlock Tutorial](Images/tutorial.png)
+![FreeBlock Tutorial](tutorial.png)
 
 ## Navigation
 
@@ -44,35 +44,35 @@ FreeBlock allows you to restrict access to distracting apps and websites to focu
 
 Let's start by creating a list of distracting apps and websites to block. To do that, we will use the `freeblock list add [name]` command.
 
-![](Images/Tutorial1.png)
+![](Tutorial1.png)
 
 I've chosen to name my list "distractions". After running the command, a file will open in your preferred text editor. Type one website or process name per line in order to add it to the block list.
 
-![](Images/Tutorial2.png)
+![](Tutorial2.png)
 
 > Note: Websites shouldn't start with `https://` or `www.`, as shown in the picture
 
 After you save and close the file, the list will be created. Now, if you run `freeblock status`, the list you just created should be shown.
 
-![](Images/Tutorial3.png)
+![](Tutorial3.png)
 
 ## Blocking Lists
 
 Now that we've created our first list, let's try blocking it. To do that, we will use the `freeblock block [list]` command. After you run the command, you will be warned that all blocked apps as well as all browser windows will close. This is required in order to make sure blocking takes immediate effect.
 
-![](Images/Tutorial4.png)
+![](Tutorial4.png)
 
 If you now open a browser and try to go into a blocked website, it will refuse the connection.
 
-![](Images/Tutorial5.png)
+![](Tutorial5.png)
 
 Moreover, if you now open a blocked app, it will close immediately.
 
-![](Images/Tutorial6.png)
+![](Tutorial6.png)
 
 If you now run `freeblock status`, the list will appear as enabled. It will also show you the reason it's enabled - in this case it's because it was blocked manually.
 
-![](Images/Tutorial7.png)
+![](Tutorial7.png)
 
 ## Unblocking Lists
 
@@ -80,11 +80,11 @@ To unblock the list, use `freeblock unblock [list]`. This command doesn't requir
 
 > Note that `freeblock unblock` may not necessarily disable a list as it might remain enabled by timed locks or schedules
 
-![](Images/Tutorial8.png)
+![](Tutorial8.png)
 
 If you now run `freeblock status`, the list will appear as disabled.
 
-![](Images/Tutorial9.png)
+![](Tutorial9.png)
 
 ## Editing Lists
 
@@ -92,17 +92,17 @@ To edit a list, use `freeblock list edit [list]`. This will open the list file f
 
 > Note that removing apps or websites while a list is active is not allowed
 
-![](Images/Tutorial10.png)
+![](Tutorial10.png)
 
 To rename a list, use `freeblock list rename [old] [new]`.
 
-![](Images/Tutorial11.png)
+![](Tutorial11.png)
 
 ## Removing Lists
 
 To remove a list, use `freeblock list remove [list]`. Note that the list can't be enabled nor used by a schedule in order to be removed.
 
-![](Images/Tutorial12.png)
+![](Tutorial12.png)
 
 ## Timed Locks
 
@@ -112,13 +112,13 @@ Let's try locking the list we created previously by running `freeblock lock [lis
 
 > Make sure to provide the time in the following format: HH:MM or HH:MM:SS
 
-![](Images/Tutorial13.png)
+![](Tutorial13.png)
 
 > Note: This command also requires for all browsers and blocked apps to close in the case the list wasn't already active.
 
 If you now run `freeblock status`, the list will appear as enabled and locked until a minute from now.
 
-![](Images/Tutorial14.png)
+![](Tutorial14.png)
 
 ## Creating Schedules
 
@@ -132,7 +132,7 @@ Schedules enable lists automatically in certain time periods. Let's try creating
 - `end`: The end time for the schedule (HH:MM or HH:MM:SS)
 - `days`: The days of the week the schedule is active (weekdays, weekends, all, or custom combinations of MTWHSU - e.g. MWS, HSU, MTWH...)
 
-![](Images/Tutorial15.png)
+![](Tutorial15.png)
 
 I've created a schedule called "night" that blocks the list "distractions" from 10pm to 8am everyday. Note that when a schedule starts, all browsers and all blocked apps will close. You will be warned a minute before the schedule starts so you can save your work.
 
@@ -140,23 +140,23 @@ I've created a schedule called "night" that blocks the list "distractions" from 
 
 Fast-forward to 9:59pm and I've received a notification warning me that the schedule is starting soon and all browsers and blocked apps will close in a minute.
 
-![](Images/Tutorial16.png)
+![](Tutorial16.png)
 
 After the minute has passed, if I now run `freeblock status`, I will see the schedule is enabled and the list is enabled as well due to the schedule being active.
 
-![](Images/Tutorial17.png)
+![](Tutorial17.png)
 
 ## Editing Schedules
 
 Editing schedules is not supported yet. You can rename them by using `freeblock schedule rename [old] [new]`.
 
-![](Images/Tutorial18.png)
+![](Tutorial18.png)
 
 ## Removing Schedules
 
 To remove a schedule, use `freeblock schedule remove [name]`. Note that you can't remove a schedule if it's active.
 
-![](Images/Tutorial19.png)
+![](Tutorial19.png)
 
 ## Summary
 

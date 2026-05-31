@@ -22,7 +22,6 @@ public static class CommandSystem
         // Validate arguments
         args = [.. args.Skip(command.Route.Length)];
         var argsList = args.ToList();
-        var writeLine = false;
 
         for (int i = 0; i < command.Arguments.Count; i++)
         {
@@ -33,11 +32,11 @@ public static class CommandSystem
             // Validate argument
         Validate:
             var result = await argument.Validate(argsList[i]);
-            if (writeLine) Console.WriteLine();
-            if (result) continue;
+            Console.WriteLine();
 
             // Remove incorrect argument from array
-            argsList.RemoveAt(argsList.Count - 1);
+            if (result) continue;
+            argsList.RemoveRange(i, argsList.Count - i);
 
             // Read argument
         Read:
@@ -45,7 +44,6 @@ public static class CommandSystem
             Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} [{argument.Name}]: ");
 
             var input = Console.ReadLine()!.Trim();
-            writeLine = true;
 
             // Check empty argument
             if (input == string.Empty)

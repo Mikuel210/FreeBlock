@@ -1,8 +1,8 @@
-![FreeBlock Logo](Images/logo.png)
+![FreeBlock Logo](Projects/Ascent/FreeBlock/Code/Images/logo.png)
 
 **FreeBlock is a free and open source CLI website and app blocker for Linux, macOS and Windows.**
 
-![FreeBlock Screenshot](Images/Screenshot.png)
+![FreeBlock Screenshot](Screenshot.png)
 
 ## Navigation
 
@@ -84,4 +84,4 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 
 ---
 
-Made with ❤️ for Horizons thanks to Hack Club
+Made with ❤️ for [Horizons](http://horizons.hackclub.com) thanks to [Hack Club](https://hackclub.com)

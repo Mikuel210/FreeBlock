@@ -20,7 +20,7 @@ public static class ConnectionManager
         }
         catch
         {
-            ConsoleUtils.Error("Connection refused. Make sure the FreeBlock background service is running.");
+            ConsoleUtils.Error("Connection refused. Make sure the FreeBlock daemon is running.");
             Environment.Exit(0);
         }
     }
