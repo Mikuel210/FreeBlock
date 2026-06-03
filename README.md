@@ -85,3 +85,5 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 ---
 
 Made with ❤️ for [Horizons](http://horizons.hackclub.com) thanks to [Hack Club](https://hackclub.com)
+
+> No AI was used for making this project!
