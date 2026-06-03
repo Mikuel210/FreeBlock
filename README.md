@@ -77,6 +77,7 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 - [x] Blocking apps
 - [ ] Editing schedules
 - [ ] Requesting schedule removal
+- [ ] Break feature
 - [ ] macOS and Windows builds
 - [ ] Preventing known workarounds
 - [ ] Self hosting (sync across devices)
@@ -86,4 +87,4 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 
 Made with ❤️ for [Horizons](http://horizons.hackclub.com) thanks to [Hack Club](https://hackclub.com)
 
-> No AI was used for making this project!
+> No AI was used in this project for any documentation or code except for install and migration scripts
