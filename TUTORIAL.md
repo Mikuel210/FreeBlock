@@ -16,7 +16,7 @@
 - [Creating Schedules](#creating-schedules)
 - [Editing Schedules](#editing-schedules)
 - [Removing Schedules](#removing-schedules)
-- [Summary](#summary)
+- [All Commands](#all-commands)
 
 ## Introduction
 

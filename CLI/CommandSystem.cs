@@ -55,7 +55,7 @@ public static class CommandSystem
             string defaultArg = command.GetDefault != null ? await command.GetDefault(command, i) : "";
 
             Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} [{argument.Name}]"
-                + $"{(command.Edit ? $" ({defaultArg})" : "")}: ");
+                + $"{(command.Edit && i != 0 ? $" ({defaultArg})" : "")}: ");
 
             var input = Console.ReadLine()!.Trim();
             hasRead = true;
@@ -63,7 +63,7 @@ public static class CommandSystem
             // Check empty argument
             if (input == string.Empty)
             {
-                if (!command.Edit) 
+                if (!command.Edit || i == 0) 
                 {
                     Console.WriteLine($"[{argument.Name}] can't be empty");
                     Console.WriteLine();
