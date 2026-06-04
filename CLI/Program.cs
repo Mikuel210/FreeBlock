@@ -24,6 +24,18 @@ CommandSystem.Register(new Command(
 ));
 
 CommandSystem.Register(new Command(
+    ["-v"],
+    [],
+    ShowVersion
+));
+
+CommandSystem.Register(new Command(
+    ["--version"],
+    [],
+    ShowVersion
+));
+
+CommandSystem.Register(new Command(
     ["--uninstall"],
     [],
     Uninstall
@@ -149,6 +161,7 @@ void ShowHelp()
 
                       Available commands:
                       freeblock -h, --help       Show all available commands.
+                      freeblock -v, --version    Show the FreeBlock version.
                       freeblock status           Show the current status of block lists and schedules, where green means active.
                       freeblock list add         Create a new block list. Type one app or website to block per line.
                       freeblock list edit        Edit the websites of a block list. Removing websites while the list is active is not allowed.
@@ -200,6 +213,9 @@ async Task ShowStatus()
         Console.WriteLine($"⏰{(schedule.Active ? "🟢" : "🔴")} {schedule.Name} {timeString}");
     }
 }
+
+async Task ShowVersion() 
+    => Console.WriteLine("v0.5.0");
 
 async Task Uninstall() 
 {

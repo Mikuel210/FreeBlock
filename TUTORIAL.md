@@ -160,9 +160,10 @@ To remove a schedule, use `freeblock schedule remove [name]`. Note that you can'
 
 ![](Tutorial19.png)
 
-## Summary
+## All Commands
 
 - `freeblock -h, --help`: Show all available commands.
+- `freeblock -v, --version`: Show the FreeBlock version.
 - `freeblock status`: Show the current status of block lists and schedules, where green means active.
 - `freeblock list add`: Create a new block list. Type one app or website to block per line.
 - `freeblock list edit`: Edit the websites of a block list. Removing websites while the list is active is not allowed.

@@ -30,6 +30,7 @@ FreeBlock is a cross-platform blocker that helps you focus by managing access to
 ## Usage
 
 - `freeblock -h, --help`: Show all available commands.
+- `freeblock -v, --version`: Show the FreeBlock version.
 - `freeblock status`: Show the current status of block lists and schedules, where green means active.
 - `freeblock list add`: Create a new block list. Type one app or website to block per line.
 - `freeblock list edit`: Edit the websites of a block list. Removing websites while the list is active is not allowed.
@@ -39,6 +40,7 @@ FreeBlock is a cross-platform blocker that helps you focus by managing access to
 - `freeblock unblock`: Disable manual block for a list.
 - `freeblock lock`: Lock a list for the provided amount of time. You won't be able to disable it until the timer ends.
 - `freeblock schedule add`: Create a new schedule.
+- `freeblock schedule edit`: Edit the properties of a schedule.
 - `freeblock schedule rename`: Rename a schedule.
 - `freeblock schedule remove`: Remove a schedule. Removing schedules while they're active is not allowed.
 - `freeblock --uninstall`: Uninstall FreeBlock.
@@ -78,8 +80,8 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 - [x] Schedules
 - [x] Better onboarding
 - [x] Blocking apps
-- [ ] Editing schedules
-- [ ] Requesting schedule removal
+- [x] Editing schedules
+- [x] Requesting schedule removal
 - [ ] Break feature
 - [ ] macOS and Windows builds
 - [ ] Preventing known workarounds
