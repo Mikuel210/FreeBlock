@@ -18,7 +18,8 @@ public abstract record Argument<T>(string Name) : IArgument
     public abstract Task<bool> Validate(string input);
 }
 
-public record Command(string[] Route, List<IArgument> Arguments, Delegate Run);
+public record Command(string[] Route, List<IArgument> Arguments, Delegate Run, bool Edit = false, 
+                      Func<Command, int, Task<string>>? GetDefault = null);
 
 #region Arguments
 

@@ -67,6 +67,18 @@ public class CommunicationHub : Hub
         State.Save();
     }
 
+    public async Task EditScheduleAsync(Schedule schedule)
+    {
+        var localSchedule = GetLocalSchedule(schedule);
+        
+        localSchedule.BlockLists = schedule.BlockLists;
+        localSchedule.StartTime = schedule.StartTime;
+        localSchedule.EndTime = schedule.EndTime;
+        localSchedule.Days = schedule.Days;
+
+        State.Save();
+    }
+
     public async Task RenameScheduleAsync(Schedule schedule, string newName)
     {
         var localSchedule = GetLocalSchedule(schedule);
@@ -81,6 +93,17 @@ public class CommunicationHub : Hub
         State.Schedules.Remove(localSchedule);
         State.Save();
     }
+
+    public async Task RequestScheduleRemovalAsync(Schedule schedule)
+    {
+        var localSchedule = GetLocalSchedule(schedule);
+        localSchedule.RemovalRequestTime = DateTime.Now;
+
+        State.Save();
+    }
+
+    public async Task Uninstall() => await Platform.Uninstall.Run();
+    public async Task RemovePreferences() => await Platform.RemovePreferences.Run();
 
     private static async Task ApplyChanges()
     {

@@ -15,6 +15,8 @@ public static class Platform
     // Commands
     public static CommandAction FlushDns { get; }
     public static CommandAction SendNotification { get; }
+    public static CommandAction Uninstall { get; }
+    public static CommandAction RemovePreferences { get; }
     public static Func<string[]> GetCurrentUsers { get; }
 
     static Platform()
@@ -26,12 +28,12 @@ public static class Platform
             _configDirectoryRelative = ".config/freeblock";
 
             // Commands
-            FlushDns = new(new() { { "resolvectl", "flush-caches" }, { "systemd-resolve", "--flush-caches" } });
+            FlushDns = new([new("resolvectl", "flush-caches"), new("systemd-resolve", "--flush-caches")]);
             GetCurrentUsers = () => Directory.GetDirectories("/run/user").Select(Path.GetFileName).ToArray()!;
 
             SendNotification = new(
-                new() {
-                    {
+                [
+                    new (
                         "runuser",
                         "-l {0} -c \"dbus-send " +
                         "--session --print-reply " +
@@ -46,8 +48,38 @@ public static class Platform
                         "array:string:\\\"\\\" " +
                         "dict:string:variant:string:\\\"urgency\\\",variant:byte:2 " +
                         "int32:-1\""
-                    }
-                }
+                    )
+                ]
+            );
+
+            Uninstall = new(
+                [
+                    new (
+                        "systemctl",
+                        "stop freeblock"
+                    ),
+                    new (
+                        "rm",
+                        "/usr/bin/freeblock"
+                    ),
+                    new (
+                        "rm",
+                        "/usr/bin/freeblockd"
+                    ),
+                    new (
+                        "rm",
+                        "/etc/systemd/system/freeblock.service"
+                    )
+                ]
+            );
+
+            RemovePreferences = new(
+                [
+                    new (
+                        "rm",
+                        $"-r {ConfigDirectory}"
+                    )
+                ]
             );
         }
 
@@ -58,9 +90,11 @@ public static class Platform
             _configDirectoryRelative = "Library/Preferences/FreeBlock";
 
             // Commands
-            FlushDns = new(new() { { "dscacheutil", "-flushcache" }, { "killall", "-HUP mDNSResponder" } });
+            FlushDns = new([new("dscacheutil", "-flushcache"), new("killall", "-HUP mDNSResponder")]);
             GetCurrentUsers = () => [];
             SendNotification = new([]);
+            Uninstall = new([]);
+            RemovePreferences = new([]);
         }
 
         else if (OperatingSystem.IsWindows())
@@ -70,9 +104,10 @@ public static class Platform
             _configDirectoryRelative = "AppData/Roaming/FreeBlock";
 
             // Commands
-            FlushDns = new(new() { { "ipconfig", "/flushdns" } });
+            FlushDns = new([new("ipconfig", "/flushdns")]);
             GetCurrentUsers = () => [];
             SendNotification = new([]);
+            RemovePreferences = new([]);
         }
 
         else throw new PlatformNotSupportedException();

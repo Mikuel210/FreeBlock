@@ -23,6 +23,17 @@ public static class CommandSystem
         args = [.. args.Skip(command.Route.Length)];
         var argsList = args.ToList();
 
+        await Validate(command, argsList);
+
+        // Run command
+        if (command.Run.DynamicInvoke([.. command.Arguments]) is Task task)
+            await task;
+    }
+
+    private static async Task Validate(Command command, List<string> argsList) 
+    {
+        bool hasRead = false;
+
         for (int i = 0; i < command.Arguments.Count; i++)
         {
             // Read if no argument provided
@@ -32,7 +43,7 @@ public static class CommandSystem
             // Validate argument
         Validate:
             var result = await argument.Validate(argsList[i]);
-            Console.WriteLine();
+            if (hasRead) Console.WriteLine();
 
             // Remove incorrect argument from array
             if (result) continue;
@@ -41,26 +52,31 @@ public static class CommandSystem
             // Read argument
         Read:
             string space = (argsList.Count == 0 || argsList[0] == string.Empty) ? "" : " ";
-            Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} [{argument.Name}]: ");
+            string defaultArg = command.GetDefault != null ? await command.GetDefault(command, i) : "";
+
+            Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} [{argument.Name}]"
+                + $"{(command.Edit ? $" ({defaultArg})" : "")}: ");
 
             var input = Console.ReadLine()!.Trim();
+            hasRead = true;
 
             // Check empty argument
             if (input == string.Empty)
             {
-                Console.WriteLine($"[{argument.Name}] can't be empty");
-                Console.WriteLine();
-                goto Read;
+                if (!command.Edit) 
+                {
+                    Console.WriteLine($"[{argument.Name}] can't be empty");
+                    Console.WriteLine();
+                    goto Read;
+                }
+
+                input = defaultArg;
             }
 
             // Add argument to array
             argsList.Add(input);
             goto Validate;
         }
-
-        // Run command
-        if (command.Run.DynamicInvoke(command.Arguments.ToArray()) is Task task)
-            await task;
     }
 
     private static Command? GetMatchingCommand(string[] args)

@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Daemon;
 
-public record CommandAction(Dictionary<string, string> Commands, Dictionary<string, string>? Environment = null)
+public record CommandAction(List<KeyValuePair<string, string>> Commands, Dictionary<string, string>? Environment = null)
 {
 
     public async Task Run(params object?[] args)

@@ -4,13 +4,14 @@ public class Schedule : IStateObject
 {
 
     public string Name { get; set; } = string.Empty;
-    public List<BlockList> BlockLists { get; init; } = [];
+    public List<BlockList> BlockLists { get; set; } = [];
 
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
     public DayOfWeek[] Days { get; set; } = [];
 
     public bool Active => IsActive(StartTime, EndTime, Days);
+    public DateTime? RemovalRequestTime { get; set; }
 
     public static bool IsActive(TimeOnly startTime, TimeOnly endTime, DayOfWeek[] days)
     {

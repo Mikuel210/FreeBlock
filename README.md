@@ -41,6 +41,7 @@ FreeBlock is a cross-platform blocker that helps you focus by managing access to
 - `freeblock schedule add`: Create a new schedule.
 - `freeblock schedule rename`: Rename a schedule.
 - `freeblock schedule remove`: Remove a schedule. Removing schedules while they're active is not allowed.
+- `freeblock --uninstall`: Uninstall FreeBlock.
 
 ## Tutorial
 
@@ -63,6 +64,8 @@ Builds for macOS and Windows are coming soon! In the meantime, you can **build f
 2. Clone the repository
 3. Build the CLI and add it to your PATH
 4. Build the Daemon and register it as a service running as root/administrator
+
+> Note that some features might not be available for macOS or Windows as of now
 
 ## Contributing
 

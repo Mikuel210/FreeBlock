@@ -15,13 +15,14 @@ public static class ConsoleUtils
             Console.Write($"{message} ({(defaultValue ? 'Y' : 'y')}/{(defaultValue ? 'n' : 'N')}): ");
             var input = Console.ReadLine()!.Trim().ToLowerInvariant();
 
-            if (input is "" or "y" or "yes")
+            if (input is "y" or "yes" || (input == "" && defaultValue))
             {
                 if (writeLine && !disableWriteLine) Console.WriteLine();
                 return true;
             }
 
-            if (input is "n" or "no") return false;
+            if (input is "n" or "no" || (input == "" && !defaultValue)) return false;
+
             writeLine = true;
         }
     }

@@ -1,5 +1,7 @@
 ![FreeBlock Tutorial](tutorial.png)
 
+> Last update: v0.4.1
+
 ## Navigation
 
 - [Introduction](#introduction)
@@ -170,5 +172,7 @@ To remove a schedule, use `freeblock schedule remove [name]`. Note that you can'
 - `freeblock unblock`: Disable manual block for a list.
 - `freeblock lock`: Lock a list for the provided amount of time. You won't be able to disable it until the timer ends.
 - `freeblock schedule add`: Create a new schedule.
+- `freeblock schedule edit`: Edit the properties of a schedule.
 - `freeblock schedule rename`: Rename a schedule.
 - `freeblock schedule remove`: Remove a schedule. Removing schedules while they're active is not allowed.
+- `freeblock --uninstall`: Uninstall FreeBlock.
