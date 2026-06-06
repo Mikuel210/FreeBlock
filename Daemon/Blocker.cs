@@ -8,53 +8,26 @@ public static class Blocker
 
     private const string REDIRECT = "0.0.0.0";
 
-    private static readonly string[] BROWSERS = [
-        "chrome.exe", "Google Chrome", "google-chrome", "chrome",
-        "firefox.exe", "firefox", "firefox-bin",
-        "msedge.exe", "Microsoft Edge", "microsoft-edge",
-        "Safari",
-        "opera.exe", "Opera", "opera",
-        "brave.exe", "Brave Browser", "brave-browser", "brave",
-        "vivaldi.exe", "Vivaldi", "vivaldi-bin",
-        "Arc.exe", "Arc", "arc",
-        "DuckDuckGo.exe", "DuckDuckGo",
-        "tor-browser",
-        "mullvadbrowser.exe", "Mullvad Browser", "mullvad-browser",
-        "librewolf.exe", "LibreWolf", "librewolf",
-        "floorp.exe", "Floorp", "floorp",
-        "waterfox.exe", "Waterfox", "waterfox",
-        "palemoon.exe", "Pale Moon", "palemoon",
-        "Chromium", "chromium",
-        "epiphany",
-        "falkon",
-        "konqueror",
-        "midori",
-        "qutebrowser",
-        "Ladybird",
-        "Min", "Min.exe",
-        "seamonkey.exe", "seamonkey",
-        "k-meleon.exe",
-        "netsurf",
-        "Zen", "zen.exe", "zen-browser", "zen"
-    ];
-
-    private static string[] BlockedEntries
+    private static List<Entry> BlockedEntries
     {
         get
         {
-            List<string> blockedEntries = [];
+            List<Entry> output = [];
 
-            foreach (var list in State.BlockLists.Where(e => e.Active))
-                blockedEntries.AddRange(list.Entries);
+            output.AddRange(State.Block);
+            output.AddRange(State.Locks.SelectMany(e => e.Entries));
+            output.AddRange(State.Schedules.Where(e => e.Active).SelectMany(e => e.Entries));
 
-            return blockedEntries.Distinct().ToArray();
+            output = output.ResolveLists(name => State.Lists.Single(e => e.Name == name));
+            return [.. output.Distinct()];
         }
     }
 
-    private static string[] _previousBlockedEntries;
+    private static string[] _previousWebsites;
 
     static Blocker()
     {
+        // Get previous blocked websites
         List<string> urls = [];
         var lines = File.ReadAllLines(Platform.HostsPath);
 
@@ -64,7 +37,7 @@ public static class Blocker
                 urls.Add(line[REDIRECT.Length..].SanitizeUrl());
         }
 
-        _previousBlockedEntries = urls.Distinct().ToArray();
+        _previousWebsites = [.. urls.Distinct()];
     }
 
 
@@ -73,12 +46,13 @@ public static class Blocker
         await CloseApps();
 
         // Skip if no changes detected
-        if (BlockedEntries == _previousBlockedEntries) return;
+        var blockedWebsites = BlockedEntries.Where(e => e.Type == EntryType.Website).Select(e => e.Name).ToArray();
+        if (blockedWebsites == _previousWebsites) return;
 
         // Close browsers if necessary
-        foreach (string entry in BlockedEntries)
+        foreach (string entry in blockedWebsites)
         {
-            if (_previousBlockedEntries.Contains(entry)) continue;
+            if (_previousWebsites.Contains(entry)) continue;
 
             CloseBrowsers();
             break;
@@ -91,7 +65,7 @@ public static class Blocker
         file.WriteLine("\n# FreeBlock blocked URLs");
         file.WriteLine($"{REDIRECT} use-application-dns.net");
 
-        foreach (string url in BlockedEntries)
+        foreach (string url in blockedWebsites)
         {
             file.WriteLine($"{REDIRECT} {url}");
             file.WriteLine($"{REDIRECT} www.{url}");
@@ -99,21 +73,52 @@ public static class Blocker
 
         // Flush DNS
         _ = Platform.FlushDns.Run();
-        _previousBlockedEntries = BlockedEntries;
+        _previousWebsites = blockedWebsites;
     }
 
     public static void CloseBrowsers()
     {
+        string[] browsers = [
+            "chrome.exe", "Google Chrome", "google-chrome", "chrome",
+            "firefox.exe", "firefox", "firefox-bin",
+            "msedge.exe", "Microsoft Edge", "microsoft-edge",
+            "Safari",
+            "opera.exe", "Opera", "opera",
+            "brave.exe", "Brave Browser", "brave-browser", "brave",
+            "vivaldi.exe", "Vivaldi", "vivaldi-bin",
+            "Arc.exe", "Arc", "arc",
+            "DuckDuckGo.exe", "DuckDuckGo",
+            "tor-browser",
+            "mullvadbrowser.exe", "Mullvad Browser", "mullvad-browser",
+            "librewolf.exe", "LibreWolf", "librewolf",
+            "floorp.exe", "Floorp", "floorp",
+            "waterfox.exe", "Waterfox", "waterfox",
+            "palemoon.exe", "Pale Moon", "palemoon",
+            "Chromium", "chromium",
+            "epiphany",
+            "falkon",
+            "konqueror",
+            "midori",
+            "qutebrowser",
+            "Ladybird",
+            "Min", "Min.exe",
+            "seamonkey.exe", "seamonkey",
+            "k-meleon.exe",
+            "netsurf",
+            "Zen", "zen.exe", "zen-browser", "zen"
+        ];
+
         Process.GetProcesses()
-            .Where(e => BROWSERS.Contains(e.ProcessName))
+            .Where(e => browsers.Contains(e.ProcessName))
             .ToList().ForEach(e => e.Kill());
     }
 
     public static async Task CloseApps()
     {
-        var apps = Process.GetProcesses().Where(e => BlockedEntries.Contains(e.ProcessName)).ToList();
+        var blockedApps = BlockedEntries.Where(e => e.Type == EntryType.App).Select(e => e.Name).ToArray();
+        var apps = Process.GetProcesses().Where(e => blockedApps.Contains(e.ProcessName)).ToList();
+        
         if (apps.Count == 0) return;
-
         apps.ForEach(e => e.Kill());
 
         // Send notification

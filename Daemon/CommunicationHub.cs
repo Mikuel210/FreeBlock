@@ -1,27 +1,29 @@
 using Microsoft.AspNetCore.SignalR;
 using SDK;
+using Lock = SDK.Lock;
 
 namespace Daemon;
 
 public class CommunicationHub : Hub
 {
 
-    public async Task AddListAsync(BlockList list)
+    #region Actions
+
+    public async Task AddListAsync(List list)
     {
-        State.BlockLists.Add(list);
+        State.Lists.Add(list);
         State.Save();
     }
 
-    public async Task EditListAsync(BlockList list)
+    public async Task EditListAsync(List list)
     {
         var localList = GetLocalList(list);
-        localList.Entries.Clear();
-        localList.Entries.AddRange(list.Entries);
+        localList.Entries = list.Entries;
 
         await ApplyChanges();
     }
 
-    public async Task RenameListAsync(BlockList list, string newName)
+    public async Task RenameListAsync(List list, string newName)
     {
         var localList = GetLocalList(list);
         localList.Name = newName;
@@ -29,54 +31,48 @@ public class CommunicationHub : Hub
         State.Save();
     }
 
-    public async Task RemoveListAsync(BlockList list)
+    public async Task RemoveListAsync(List list)
     {
         var localList = GetLocalList(list);
-        State.BlockLists.Remove(localList);
+        State.Lists.Remove(localList);
 
         await ApplyChanges();
     }
 
-    public async Task BlockAsync(BlockList list)
+    public async Task BlockAsync(List<Entry> entries)
     {
-        var localList = GetLocalList(list);
-        localList!.ManuallyBlocked = true;
-
+        State.Block.AddRange(entries);
         await ApplyChanges();
     }
 
-    public async Task UnblockAsync(BlockList list)
+    public async Task UnblockAsync(List<Entry> entries)
     {
-        var localList = GetLocalList(list);
-        localList!.ManuallyBlocked = false;
-
+        State.Block = [.. State.Block.Except(entries)];
         await ApplyChanges();
     }
 
-    public async Task LockAsync(BlockList list, DateTime unlockTime)
+    public async Task LockAsync(Lock @lock)
     {
-        var localList = GetLocalList(list);
-        localList.UnlockTime = unlockTime;
-
+        State.Locks.Add(@lock);
         await ApplyChanges();
     }
 
     public async Task AddScheduleAsync(Schedule schedule)
     {
         State.Schedules.Add(schedule);
-        State.Save();
+        await ApplyChanges();
     }
 
     public async Task EditScheduleAsync(Schedule schedule)
     {
         var localSchedule = GetLocalSchedule(schedule);
         
-        localSchedule.BlockLists = schedule.BlockLists;
+        localSchedule.Entries = schedule.Entries;
         localSchedule.StartTime = schedule.StartTime;
         localSchedule.EndTime = schedule.EndTime;
         localSchedule.Days = schedule.Days;
 
-        State.Save();
+        await ApplyChanges();
     }
 
     public async Task RenameScheduleAsync(Schedule schedule, string newName)
@@ -91,6 +87,7 @@ public class CommunicationHub : Hub
     {
         var localSchedule = GetLocalSchedule(schedule);
         State.Schedules.Remove(localSchedule);
+
         State.Save();
     }
 
@@ -103,38 +100,52 @@ public class CommunicationHub : Hub
     }
 
     public async Task Uninstall() => await Platform.Uninstall.Run();
+
     public async Task RemovePreferences() => await Platform.RemovePreferences.Run();
+
+    #endregion
+
+    #region Get State
+
+    public async Task<(List<Entry>, List<Lock>, List<List>, List<Schedule>)> GetStateAsync()
+        => (State.Block, State.Locks, State.Lists, State.Schedules);
+
+    public async Task<List<Entry>> GetBlockAsync()
+        => State.Block;
+
+    public async Task<List<Lock>> GetLocksAsync()
+        => State.Locks;
+
+    public async Task<List<List>> GetListsAsync()
+        => State.Lists;
+
+    public async Task<List<Schedule>> GetSchedulesAsync()
+        => State.Schedules;
+
+    private static T? GetFromName<T>(List<T> list, string name) where T : IName
+        => list.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+
+    public async Task<List?> GetListFromNameAsync(string name)
+        => GetFromName(State.Lists, name);
+
+    public async Task<Schedule?> GetScheduleFromNameAsync(string name)
+        => GetFromName(State.Schedules, name);
+
+    private static T GetLocal<T>(List<T> list, T client) where T : IName
+        => list.First(e => e.Name.Equals(client.Name, StringComparison.InvariantCultureIgnoreCase));
+
+    private static List GetLocalList(List clientList)
+        => GetLocal(State.Lists, clientList);
+
+    private static Schedule GetLocalSchedule(Schedule clientSchedule)
+        => GetLocal(State.Schedules, clientSchedule);
+
+    #endregion
 
     private static async Task ApplyChanges()
     {
         await Blocker.UpdateAsync();
         State.Save();
     }
-
-
-    public async Task<BlockList[]> GetBlockListsAsync()
-        => State.BlockLists.ToArray();
-
-    public async Task<Schedule[]> GetSchedulesAsync()
-        => State.Schedules.ToArray();
-
-    public async Task<BlockList?> GetListFromNameAsync(string name)
-        => GetFromName(State.BlockLists, name);
-
-    public async Task<Schedule?> GetScheduleFromNameAsync(string name)
-        => GetFromName(State.Schedules, name);
-
-
-    private static BlockList GetLocalList(BlockList clientList)
-        => GetLocal(State.BlockLists, clientList);
-
-    private static Schedule GetLocalSchedule(Schedule clientSchedule)
-        => GetLocal(State.Schedules, clientSchedule);
-
-    private static T? GetFromName<T>(List<T> list, string name) where T : IStateObject
-    => list.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
-
-    private static T GetLocal<T>(List<T> list, T client) where T : IStateObject
-        => list.First(e => e.Name.Equals(client.Name, StringComparison.InvariantCultureIgnoreCase));
 
 }

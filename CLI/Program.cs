@@ -2,6 +2,7 @@
 using Daemon;
 using SDK;
 using CLI;
+using Lock = SDK.Lock;
 
 #region Command System
 
@@ -85,7 +86,7 @@ CommandSystem.Register(new Command(
 
 CommandSystem.Register(new Command(
     ["lock"],
-    [new ListArgument("list"), new TimeArgument("time")],
+    [new TimeArgument("time")],
     Lock
 ));
 
@@ -93,7 +94,7 @@ CommandSystem.Register(new Command(
     ["schedule", "add"],
     [
         new AddScheduleArgument("name"),
-        new ArrayArgument<BlockList, ListArgument>("lists"),
+        new ArrayArgument<List, ListArgument>("lists"),
         new TimeArgument("start"),
         new TimeArgument("end"),
         new DaysArgument("days"),
@@ -105,7 +106,7 @@ CommandSystem.Register(new Command(
     ["schedule", "edit"],
     [
         new ScheduleArgument("name"),
-        new ArrayArgument<BlockList, ListArgument>("lists"),
+        new ArrayArgument<List, ListArgument>("lists"),
         new TimeArgument("start"),
         new TimeArgument("end"),
         new DaysArgument("days"),
@@ -119,7 +120,7 @@ CommandSystem.Register(new Command(
             ((ScheduleArgument)command.Arguments[0]).Value!.Name);
 
         return i switch {
-            1 => string.Join(", ", schedule!.BlockLists.Select(e => e.Name)),
+            1 => string.Join(", ", schedule!.Entries.Select(e => e.Name)),
             2 => schedule!.StartTime.ToString(),
             3 => schedule!.EndTime.ToString(),
             4 => schedule!.Days.GetDaysString(),
@@ -180,30 +181,59 @@ void ShowHelp()
 
 async Task ShowStatus()
 {
-    var lists = await ConnectionManager.Connection!.InvokeAsync<BlockList[]>(nameof(CommunicationHub.GetBlockListsAsync));
-    var schedules = await ConnectionManager.Connection!.InvokeAsync<Schedule[]>(nameof(CommunicationHub.GetSchedulesAsync));
+    (List<Entry> block, List<Lock> locks, List<List> lists, List<Schedule> schedules) = 
+        await ConnectionManager.Connection!.InvokeAsync<(List<Entry>, List<Lock>, List<List>, List<Schedule>)>("GetStateAsync");
 
-    if (lists.Length == 0 && schedules.Length == 0)
+    var entries = block
+        .Concat(locks.SelectMany(e => e.Entries))
+        .Concat(schedules.SelectMany(e => e.Entries))
+        .Where(e => e.Type != EntryType.List)
+        .ToArray();
+
+    if (entries.Length == 0 && lists.Count == 0 && schedules.Count == 0)
     {
         Console.WriteLine("No lists or schedules found");
         return;
     }
 
+    string[] GetBlockReasons(Entry entry)
+    {
+        List<string> blockReasons = [];
+        if (block.Contains(entry)) blockReasons.Add("manual");
+
+        foreach (var @lock in locks)
+        {
+            if (@lock.Entries.Contains(entry))
+                blockReasons.Add($"🔒 {@lock.UnlockTime}");
+        }
+            
+        foreach (var schedule in schedules)
+        {  
+            if (schedule.Entries.Contains(entry))
+                blockReasons.Add($"⏰ {schedule.Name}");
+        }
+
+        return [.. blockReasons];
+    }
+
+    // Entries
+    foreach (var entry in entries)
+    {
+        string[] blockReasons = GetBlockReasons(entry);
+
+        string reasonsString = blockReasons.Length == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
+        string typeIcon = entry.Type == EntryType.Website ? "🌐" : "💻";
+        Console.WriteLine($"{typeIcon}🟢 {entry.Name}{reasonsString}");
+    }
+
     // Lists
     foreach (var list in lists)
     {
-        List<string> blockReasons = [];
-        if (list.ManuallyBlocked) blockReasons.Add("manual");
-        if (list.Locked) blockReasons.Add($"🔒 {list.UnlockTime}");
+        Entry entry = new(EntryType.List, list.Name);
+        string[] blockReasons = GetBlockReasons(entry);
 
-        if (list.Scheduled)
-        {
-            var blockingSchedules = schedules.Where(e => e.BlockLists.Select(e => e.Name).Contains(list.Name) && e.Active);
-            blockReasons.Add($"⏰ {string.Join(", ", blockingSchedules.Select(e => e.Name))}");
-        }
-
-        string reasonsString = blockReasons.Count == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
-        Console.WriteLine($"📋{(list.Active ? "🟢" : "🔴")} {list.Name}{reasonsString}");
+        string reasonsString = blockReasons.Length == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
+        Console.WriteLine($"📋{(blockReasons.Length > 0 ? "🟢" : "🔴")} {list.Name}{reasonsString}");
     }
 
     // Schedules
@@ -214,18 +244,13 @@ async Task ShowStatus()
     }
 }
 
-async Task ShowVersion() 
-    => Console.WriteLine("v0.5.0");
+async Task ShowVersion() => Console.WriteLine("v0.6.0");
 
 async Task Uninstall() 
 {
-    var lists = (await ConnectionManager.Connection!.InvokeAsync<BlockList[]>(nameof(CommunicationHub.GetBlockListsAsync))).ToList();
+    var lists = (await ConnectionManager.Connection!.InvokeAsync<List[]>(nameof(CommunicationHub.GetListsAsync))).ToList();
     
-    if (lists.Any(e => e.Active)) 
-    {
-        ConsoleUtils.Error("To prevent impulsive choices, FreeBlock can't be uninstalled while any block lists are active");
-        return;
-    }
+    // TODO NOT ALLOW IF BLOCKING IS IN PLACE
 
     if (ConsoleUtils.PromptYesNo("Remove user data and preferences?", false)) 
         await ConnectionManager.Connection!.InvokeAsync("RemovePreferences");
@@ -236,13 +261,10 @@ async Task Uninstall()
 
 async Task AddList(AddListArgument argument)
 {
-    var list = new BlockList
-    {
-        Name = argument.Value!
-    };
+    var list = new List { Name = argument.Value! };
 
-    Console.WriteLine("Waiting for your editor to close the file...");
-    await ConsoleUtils.EditList(list);
+    (List<Entry> entries, string contents) = await ConsoleUtils.EditEntries("", list.Name);
+    list.Entries = entries;
 
     await ConnectionManager.Connection!.InvokeAsync("AddListAsync", list);
     Console.WriteLine("List created successfully");
@@ -251,17 +273,17 @@ async Task AddList(AddListArgument argument)
 async Task EditList(ListArgument argument)
 {
     var list = argument.Value!;
-    var previousEntries = list.Entries.ToList();
+    (List<Entry> entries, string contents) = await ConsoleUtils.EditEntries("", list.Name); // TODO: get previous entries text
 
-    Console.WriteLine("Waiting for your editor to close the file...");
-    await ConsoleUtils.EditList(list);
+    // TODO close browsers, revert removed entries
 
+/*
     if (list.Active)
     {
         // Close browsers
-        foreach (string entry in list.Entries)
+        foreach (var entry in entries)
         {
-            if (previousEntries.Contains(entry)) continue;
+            if (list.Entries.Contains(entry)) continue;
 
             Console.WriteLine();
             if (!ConsoleUtils.PromptClose(true)) return;
@@ -272,17 +294,20 @@ async Task EditList(ListArgument argument)
         // Revert removed websites
         bool showWarning = false;
 
-        foreach (string entry in previousEntries)
+        foreach (var entry in list.Entries)
         {
-            if (list.Entries.Contains(entry)) continue;
+            if (entries.Contains(entry)) continue;
 
-            list.Entries.Add(entry);
+            entries.Add(entry);
             showWarning = true;
         }
 
         Console.WriteLine();
         if (showWarning) ConsoleUtils.Warning("Removing websites is not allowed while the list is active");
     }
+*/
+
+    list.Entries = entries;
 
     await ConnectionManager.Connection!.InvokeAsync("EditListAsync", list);
     Console.WriteLine($"Updated list: {list.Name}");
@@ -300,25 +325,12 @@ async Task RenameList(ListArgument listArgument, AddListArgument nameArgument)
 
 async Task RemoveList(ListArgument argument)
 {
+    (List<Entry> block, List<Lock> locks, List<List> lists, List<Schedule> schedules) = 
+        await ConnectionManager.Connection!.InvokeAsync<(List<Entry>, List<Lock>, List<List>, List<Schedule>)>("GetStateAsync");
+
     var list = argument.Value!;
 
-    var schedules = (await ConnectionManager.Connection!
-        .InvokeAsync<Schedule[]>(nameof(CommunicationHub.GetSchedulesAsync)))
-        .Where(e => e.BlockLists
-            .Select(e => e.Name)
-            .Contains(list.Name));
-
-    if (list.Active)
-    {
-        ConsoleUtils.Error($"Removing lists while they're active is not allowed: {list.Name}");
-        return;
-    }
-
-    if (schedules.Any())
-    {
-        ConsoleUtils.Error($"The list is being used by {(schedules.Count() == 1 ? "an schedule" : "schedules")}: {string.Join(", ", schedules.Select(e => e.Name))}");
-        return;
-    }
+    // TODO CHECK IF ACTIVE AND CHECK USAGE!!!
 
     await ConnectionManager.Connection!.InvokeAsync("RemoveListAsync", list);
     Console.WriteLine($"Removed list: {list.Name}");
@@ -328,29 +340,8 @@ async Task Block(ListArgument argument)
 {
     var list = argument.Value!;
 
-    if (list.Locked) ConsoleUtils.Note($"The list was already active as it's locked until {list.UnlockTime}");
-
-    if (list.Scheduled)
-    {
-        var schedules = (await ConnectionManager.Connection!
-            .InvokeAsync<Schedule[]>(nameof(CommunicationHub.GetSchedulesAsync)))
-            .Where(e => e.BlockLists
-                .Select(e => e.Name)
-                .Contains(list.Name) && e.Active)
-            .Select(e => e.Name)
-            .ToList();
-
-        if (schedules.Count == 1) ConsoleUtils.Warning($"The list remains blocked by an active schedule: {schedules.First()}");
-        else if (schedules.Count != 0) ConsoleUtils.Warning($"The list remains blocked by active schedules: {string.Join(", ", schedules)}");
-    }
-
-    if (list.ManuallyBlocked)
-    {
-        Console.WriteLine($"Manual block is already enabled: {list.Name}");
-        return;
-    }
-
-    if (!list.Active && !ConsoleUtils.PromptClose()) return;
+    // TODO WARN LOCKS, SCHEDULES, ALREADY BLOCKED
+    // TODO IF NOT ACTIVE, PROMPT CLOSE
 
     await ConnectionManager.Connection!.InvokeAsync("BlockAsync", list);
     Console.WriteLine($"Enabled manual block: {list.Name}");
@@ -359,60 +350,35 @@ async Task Block(ListArgument argument)
 async Task Unblock(ListArgument argument)
 {
     var list = argument.Value!;
-    if (list.Locked) ConsoleUtils.Warning($"The list remains active as it's locked until {list.UnlockTime}");
 
-    if (list.Scheduled)
-    {
-        var schedules = (await ConnectionManager.Connection!
-            .InvokeAsync<Schedule[]>(nameof(CommunicationHub.GetSchedulesAsync)))
-            .Where(e => e.BlockLists
-                .Select(e => e.Name)
-                .Contains(list.Name) && e.Active)
-            .Select(e => e.Name)
-            .ToList();
-
-        if (schedules.Count == 1) ConsoleUtils.Warning($"The list remains blocked by an active schedule: {schedules.First()}");
-        else if (schedules.Count != 0) ConsoleUtils.Warning($"The list remains blocked by active schedules: {string.Join(", ", schedules)}");
-    }
-
-    if (!list.ManuallyBlocked)
-    {
-        Console.WriteLine($"Manual block is already disabled: {list.Name}");
-        return;
-    }
+    // TODO WARN LOCKS, SCHEDULES, ALREADY UNBLOCKED
 
     await ConnectionManager.Connection!.InvokeAsync("UnblockAsync", list);
     Console.WriteLine($"Disabled manual block: {list.Name}");
 }
 
-async Task Lock(ListArgument listArgument, TimeArgument timeArgument)
+async Task Lock(TimeArgument timeArgument)
 {
-    var list = listArgument.Value!;
     var time = timeArgument.Value!.ToTimeSpan();
     var unlockTime = DateTime.Now.Add(time);
 
-    if (list.UnlockTime != null && list.UnlockTime > unlockTime)
-    {
-        ConsoleUtils.Error($"List is already locked until {list.UnlockTime}: {list.Name}");
-        return;
-    }
+    (List<Entry> entries, _) = await ConsoleUtils.EditEntries();
 
-    var prompt = $"This will block {list.Name} for {time}";
-    if (!list.Active) prompt += " and close all browsers and all blocked apps";
-    prompt += ". Okay to continue?";
-
+    var prompt = $"This will block the provided entries for {time} and close all browsers and all blocked apps. Okay to continue?";
     if (!ConsoleUtils.PromptYesNo(prompt)) return;
-    await ConnectionManager.Connection!.InvokeAsync("LockAsync", list, unlockTime);
 
-    Console.WriteLine($"Locked list for {time}: {list.Name}");
+    await ConnectionManager.Connection!.InvokeAsync("LockAsync", entries, unlockTime);
+    Console.WriteLine($"Locked entries until {unlockTime}");
 }
 
-async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListArgument> lists, TimeArgument start, TimeArgument end, DaysArgument days)
+async Task AddSchedule(AddScheduleArgument name, TimeArgument start, TimeArgument end, DaysArgument days)
 {
+    (List<Entry> entries, string contents) = await ConsoleUtils.EditEntries();
+
     var schedule = new Schedule
     {
         Name = name.Value!,
-        BlockLists = [.. lists.Value!],
+        Entries = entries,
         StartTime = start.Value,
         EndTime = end.Value,
         Days = days.Value!
@@ -424,17 +390,21 @@ async Task AddSchedule(AddScheduleArgument name, ArrayArgument<BlockList, ListAr
     Console.WriteLine($"Added schedule: {schedule.Name}");
 }
 
-async Task EditSchedule(ScheduleArgument schedule, ArrayArgument<BlockList, ListArgument> lists, TimeArgument start, TimeArgument end, DaysArgument days) {
+async Task EditSchedule(ScheduleArgument schedule, ArrayArgument<List, ListArgument> lists, TimeArgument start, TimeArgument end, DaysArgument days) 
+{
+    (List<Entry> entries, string contents) = await ConsoleUtils.EditEntries();
+
+    // TODO if active and added entries, close browsers, revert removed entries
+    // if it wasnt active before, close browsers anyways!!
+
     var updatedSchedule = new Schedule
     {
         Name = schedule.Value!.Name,
-        BlockLists = [.. lists.Value!],
+        Entries = entries,
         StartTime = start.Value,
         EndTime = end.Value,
         Days = days.Value!
     };
-
-    if (updatedSchedule.Active && !ConsoleUtils.PromptClose()) return;
 
     await ConnectionManager.Connection!.InvokeAsync("EditScheduleAsync", updatedSchedule);
     Console.WriteLine($"Edited schedule: {schedule.Value.Name}");

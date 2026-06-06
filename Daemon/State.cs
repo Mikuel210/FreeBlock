@@ -1,16 +1,21 @@
 using SDK;
+using Lock = SDK.Lock;
 
 namespace Daemon;
 
 public static class State
 {
 
-    public static List<BlockList> BlockLists { get; }
-    public static List<Schedule> Schedules { get; }
+    public static List<Entry> Block { get; set; } = [];
+    public static List<Lock> Locks { get; } = [];
+    public static List<List> Lists { get; } = [];
+    public static List<Schedule> Schedules { get; } = [];
 
     public struct DefaultValue()
     {
-        public List<BlockList> blockLists = [];
+        public List<Entry> block = [];
+        public List<Lock> locks = [];
+        public List<List> lists = [];
         public List<Schedule> schedules = [];
     }
 
@@ -18,27 +23,26 @@ public static class State
 
     static State()
     {
-        BlockLists = _file.GetList<BlockList>(nameof(DefaultValue.blockLists));
+        Block = _file.GetList<Entry>(nameof(DefaultValue.block));
+        Locks = _file.GetList<Lock>(nameof(DefaultValue.locks));
+        Lists = _file.GetList<List>(nameof(DefaultValue.lists));
         Schedules = _file.GetList<Schedule>(nameof(DefaultValue.schedules));
     }
 
-    public static void Update()
+    public static void Update() 
     {
-        // Update Scheduled property
-        foreach (var list in BlockLists)
+        foreach (var @lock in Locks) 
         {
-            list.Scheduled = Schedules
-                .FirstOrDefault(e =>
-                {
-                    var containsList = e.BlockLists.Select(e => e.Name).Contains(list.Name);
-                    return containsList && e.Active;
-                }) != null;
+            if (DateTime.Now >= @lock.UnlockTime)
+                Locks.Remove(@lock);
         }
     }
 
     public static void Save()
     {
-        _file.Set(nameof(DefaultValue.blockLists), BlockLists);
+        _file.Set(nameof(DefaultValue.block), Block);
+        _file.Set(nameof(DefaultValue.locks), Locks);
+        _file.Set(nameof(DefaultValue.lists), Lists);
         _file.Set(nameof(DefaultValue.schedules), Schedules);
         _file.Save();
     }

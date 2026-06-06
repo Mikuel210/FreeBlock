@@ -1,17 +1,21 @@
 namespace SDK;
 
-public class Schedule : IStateObject
+public class Schedule : IName
 {
 
     public string Name { get; set; } = string.Empty;
-    public List<BlockList> BlockLists { get; set; } = [];
+    public List<Entry> Entries { get; set; } = [];
 
+    // Properties
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
     public DayOfWeek[] Days { get; set; } = [];
 
-    public bool Active => IsActive(StartTime, EndTime, Days);
+    // Removal
     public DateTime? RemovalRequestTime { get; set; }
+
+    // Active
+    public bool Active => IsActive(StartTime, EndTime, Days);
 
     public static bool IsActive(TimeOnly startTime, TimeOnly endTime, DayOfWeek[] days)
     {

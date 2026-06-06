@@ -32,11 +32,11 @@ public record StringArgument(string Name) : Argument<string>(Name)
     }
 }
 
-public record ListArgument(string Name) : Argument<BlockList>(Name)
+public record ListArgument(string Name) : Argument<List>(Name)
 {
     public override async Task<bool> Validate(string input)
     {
-        Value = await ConnectionManager.Connection!.InvokeAsync<BlockList>("GetListFromNameAsync", input);
+        Value = await ConnectionManager.Connection!.InvokeAsync<List>("GetListFromNameAsync", input);
 
         if (Value == null)
         {
@@ -52,7 +52,7 @@ public record AddListArgument(string Name) : Argument<string>(Name)
 {
     public override async Task<bool> Validate(string input)
     {
-        var list = await ConnectionManager.Connection!.InvokeAsync<BlockList>("GetListFromNameAsync", input);
+        var list = await ConnectionManager.Connection!.InvokeAsync<List>("GetListFromNameAsync", input);
 
         if (list != null)
         {

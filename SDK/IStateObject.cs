@@ -1,6 +1,6 @@
 namespace SDK;
 
-public interface IStateObject
+public interface IName
 {
     string Name { get; }
 }
