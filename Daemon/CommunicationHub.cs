@@ -102,7 +102,12 @@ public class CommunicationHub : Hub
         State.Save();
     }
 
-    public async Task Uninstall() => await Platform.Uninstall.Run();
+    public async Task Uninstall() 
+    {
+        File.WriteAllText(Platform.HostsPath, Config.Get<string>(nameof(Config.DefaultValue.hosts)));
+        await Platform.Uninstall.Run();
+    }
+
     public async Task RemovePreferences() => await Platform.RemovePreferences.Run();
 
     private static async Task ApplyChanges()

@@ -14,6 +14,8 @@ public static class Config
     {
         if (!string.IsNullOrEmpty(Get<string>(nameof(DefaultValue.hosts)))) return;
         Set(nameof(DefaultValue.hosts), File.ReadAllText(Platform.HostsPath));
+
+        Save();
     }
 
     public static T? Get<T>(string key) where T : class => _file.Get<T>(key);
