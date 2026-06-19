@@ -12,6 +12,9 @@ public static class Platform
     public static string ConfigFile => Path.Join(ConfigDirectory, "config.json");
     public static string StateFile => Path.Join(ConfigDirectory, "state.json");
 
+    public static string BlockPath => Path.Join(ConfigDirectory, "block.freeblock");
+    public static string ListsDirectory => Path.Join(ConfigDirectory, "lists");
+
     // Commands
     public static CommandAction FlushDns { get; }
     public static CommandAction SendNotification { get; }
@@ -107,6 +110,7 @@ public static class Platform
             FlushDns = new([new("ipconfig", "/flushdns")]);
             GetCurrentUsers = () => [];
             SendNotification = new([]);
+            Uninstall = new([]);
             RemovePreferences = new([]);
         }
 

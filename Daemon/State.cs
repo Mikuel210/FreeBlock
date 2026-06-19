@@ -7,43 +7,33 @@ public static class State
 {
 
     public static List<Entry> Block { get; set; } = [];
-    public static List<Lock> Locks { get; } = [];
-    public static List<List> Lists { get; } = [];
-    public static List<Schedule> Schedules { get; } = [];
+    public static List<Lock> Locks { get; set; } = [];
+    public static List<List> Lists { get; set; } = [];
+    public static List<Schedule> Schedules { get; set; } = [];
 
-    public struct DefaultValue()
-    {
-        public List<Entry> block = [];
-        public List<Lock> locks = [];
-        public List<List> lists = [];
-        public List<Schedule> schedules = [];
-    }
-
-    private static readonly JsonFile _file = new(Platform.StateFile, new DefaultValue());
+    private static readonly JsonFile _file = new(Platform.StateFile, GetSnapshot());
 
     static State()
     {
-        Block = _file.GetList<Entry>(nameof(DefaultValue.block));
-        Locks = _file.GetList<Lock>(nameof(DefaultValue.locks));
-        Lists = _file.GetList<List>(nameof(DefaultValue.lists));
-        Schedules = _file.GetList<Schedule>(nameof(DefaultValue.schedules));
+        Block = _file.GetList<Entry>(nameof(StateSnapshot.Block));
+        Locks = _file.GetList<Lock>(nameof(StateSnapshot.Locks));
+        Lists = _file.GetList<List>(nameof(StateSnapshot.Lists));
+        Schedules = _file.GetList<Schedule>(nameof(StateSnapshot.Schedules));
     }
 
+    public static StateSnapshot GetSnapshot()
+        => new(Block, Locks, Lists, Schedules);
+
     public static void Update() 
-    {
-        foreach (var @lock in Locks) 
-        {
-            if (DateTime.Now >= @lock.UnlockTime)
-                Locks.Remove(@lock);
-        }
-    }
+        => Locks = [.. Locks.Where(e => DateTime.Now < e.UnlockTime)];
 
     public static void Save()
     {
-        _file.Set(nameof(DefaultValue.block), Block);
-        _file.Set(nameof(DefaultValue.locks), Locks);
-        _file.Set(nameof(DefaultValue.lists), Lists);
-        _file.Set(nameof(DefaultValue.schedules), Schedules);
+        _file.Set(nameof(StateSnapshot.Block), Block);
+        _file.Set(nameof(StateSnapshot.Locks), Locks);
+        _file.Set(nameof(StateSnapshot.Lists), Lists);
+        _file.Set(nameof(StateSnapshot.Schedules), Schedules);
+
         _file.Save();
     }
 

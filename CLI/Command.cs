@@ -7,10 +7,12 @@ public interface IArgument
 {
     public string Name { get; }
     public object? Value { get; }
+    public bool Params { get; }
+
     public Task<bool> Validate(string input);
 }
 
-public abstract record Argument<T>(string Name) : IArgument
+public abstract record Argument<T>(string Name, bool Params = false) : IArgument
 {
     public T? Value { get; protected set; }
     object? IArgument.Value => Value;
@@ -28,6 +30,37 @@ public record StringArgument(string Name) : Argument<string>(Name)
     public override async Task<bool> Validate(string input)
     {
         Value = input;
+        return true;
+    }
+}
+
+public record EntriesArgument(string Name) : Argument<List<Entry>>(Name, true)
+{
+    public override async Task<bool> Validate(string input)
+    {
+        var lines = input.Split(' ');
+        var lists = await ConnectionManager.Connection!.InvokeAsync<List<List>>("GetListsAsync");
+
+        List<Entry> entries = [];
+        List<string> errors = [];
+
+        foreach (var line in lines)
+        {
+            bool result = line.ToEntry(out var entry, out var error, lists);
+
+            if (!result) 
+            {
+                if (error != null) errors.Add(error);
+                continue;
+            }
+
+            entries.Add(entry!);
+        }
+
+        errors.ForEach(e => ConsoleUtils.Warning(e));
+        if (errors.Count > 0) Console.WriteLine();
+
+        Value = entries;
         return true;
     }
 }
@@ -161,27 +194,6 @@ public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
         }
 
         Value = days.ToArray();
-        return true;
-    }
-}
-
-public record ArrayArgument<TValue, TArgument>(string Name) : Argument<TValue[]>(Name) where TArgument : IArgument
-{
-    public override async Task<bool> Validate(string input)
-    {
-        var inputs = input.Split(',').Select(e => e.Trim()).ToList();
-        if (input.Trim().EndsWith(',')) inputs.RemoveAt(inputs.Count - 1);
-
-        var argument = (TArgument)Activator.CreateInstance(typeof(TArgument), string.Empty)!;
-        List<TValue> values = [];
-
-        foreach (var value in inputs)
-        {
-            if (!await argument.Validate(value)) return false;
-            values.Add((TValue)argument.Value!);
-        }
-
-        Value = values.Distinct().ToArray();
         return true;
     }
 }

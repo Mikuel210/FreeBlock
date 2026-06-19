@@ -9,7 +9,7 @@ public static class CommandSystem
     public static async Task Handle(string[] args)
     {
         // Find command
-        args = args.Select(e => e.Trim()).ToArray();
+        args = [.. args.Select(e => e.Trim())];
         var command = GetMatchingCommand(args);
 
         if (command == null)
@@ -22,6 +22,12 @@ public static class CommandSystem
         // Validate arguments
         args = [.. args.Skip(command.Route.Length)];
         var argsList = args.ToList();
+
+        if (command.Arguments.LastOrDefault()?.Params == true && argsList.Count > command.Arguments.Count)
+        {
+            var lastArgument = string.Join(' ', argsList.Skip(command.Arguments.Count - 1));
+            argsList = [.. argsList.GetRange(0, command.Arguments.Count - 1), lastArgument];
+        }
 
         await Validate(command, argsList);
 

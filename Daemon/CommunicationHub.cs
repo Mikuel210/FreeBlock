@@ -9,14 +9,18 @@ public class CommunicationHub : Hub
 
     #region Actions
 
-    public async Task AddListAsync(List list)
+    public async Task AddListAsync(List list, string contents)
     {
+        WriteFile(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"), contents);
+        
         State.Lists.Add(list);
         State.Save();
     }
 
-    public async Task EditListAsync(List list)
+    public async Task EditListAsync(List list, string contents)
     {
+        WriteFile(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"), contents);
+
         var localList = GetLocalList(list);
         localList.Entries = list.Entries;
 
@@ -25,6 +29,41 @@ public class CommunicationHub : Hub
 
     public async Task RenameListAsync(List list, string newName)
     {
+        // Move list file
+        string oldPath = Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock");
+        string newPath = Path.Join(Platform.ListsDirectory, $"{newName}.freeblock");
+
+        if (Path.Exists(oldPath))
+            File.Move(oldPath, newPath);
+
+        // Change all references
+        var entries = State.Block
+            .Concat(State.Locks.SelectMany(e => e.Entries))
+            .Concat(State.Lists.SelectMany(e => e.Entries))
+            .Concat(State.Schedules.SelectMany(e => e.Entries));
+
+        foreach (var entry in entries)
+        {
+            if (entry.Type == EntryType.List && entry.Name == list.Name)
+                entry.Name = newName;
+        }
+
+        var paths = Directory.GetFiles(Platform.ListsDirectory).Append(Platform.BlockPath);
+
+        foreach (var path in paths)
+        {
+            var lines = File.ReadAllLines(path);
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i].Trim() == $"@{list.Name}")
+                    lines[i] = $"@{newName}";
+            }
+
+            WriteFile(path, string.Join('\n', path));
+        }
+        
+        // Change name
         var localList = GetLocalList(list);
         localList.Name = newName;
 
@@ -33,6 +72,8 @@ public class CommunicationHub : Hub
 
     public async Task RemoveListAsync(List list)
     {
+        File.Delete(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
+
         var localList = GetLocalList(list);
         State.Lists.Remove(localList);
 
@@ -41,13 +82,14 @@ public class CommunicationHub : Hub
 
     public async Task BlockAsync(List<Entry> entries)
     {
-        State.Block.AddRange(entries);
+        // todo check for duplicates
+        State.Block.AddRange(entries.Where(e => !State.Block.Contains(e)));
         await ApplyChanges();
     }
 
     public async Task UnblockAsync(List<Entry> entries)
     {
-        State.Block = [.. State.Block.Except(entries)];
+        State.Block = [.. State.Block.Where(e => !entries.Contains(e))];
         await ApplyChanges();
     }
 
@@ -99,16 +141,23 @@ public class CommunicationHub : Hub
         State.Save();
     }
 
-    public async Task Uninstall() => await Platform.Uninstall.Run();
+    public async Task UninstallAsync() 
+    {
+        File.WriteAllText(Platform.HostsPath, Config.Get<string>(nameof(Config.DefaultValue.hosts)));
+        await Platform.Uninstall.Run();
+    } 
 
-    public async Task RemovePreferences() => await Platform.RemovePreferences.Run();
+    public async Task RemovePreferencesAsync() => await Platform.RemovePreferences.Run();
+
+    public Task<string> GetListContentsAsync(List list)
+        => File.ReadAllTextAsync(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
 
     #endregion
 
     #region Get State
 
-    public async Task<(List<Entry>, List<Lock>, List<List>, List<Schedule>)> GetStateAsync()
-        => (State.Block, State.Locks, State.Lists, State.Schedules);
+    public async Task<StateSnapshot> GetSnapshotAsync()
+        => State.GetSnapshot();
 
     public async Task<List<Entry>> GetBlockAsync()
         => State.Block;
@@ -146,6 +195,12 @@ public class CommunicationHub : Hub
     {
         await Blocker.UpdateAsync();
         State.Save();
+    }
+
+    private static void WriteFile(string path, string contents)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, contents);
     }
 
 }

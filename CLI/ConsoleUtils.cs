@@ -38,18 +38,20 @@ public static class ConsoleUtils
         File.WriteAllText(path, defaultContents);
 
         // Start editor
+        Console.WriteLine("Waiting for your editor to close the file...");
         using var process = StartEditor(path);
 
-        if (process != null)
+        if (process == null) 
         {
-            Console.WriteLine("Waiting for your editor to close the file...");
-            await process.WaitForExitAsync();
+            Error("Failed to launch text editor");
+            Console.WriteLine();
+
+            return ([], defaultContents);
         }
-        else Error("Failed to launch text editor");
+        else await process.WaitForExitAsync();
 
         // Sanitize input
         var lines = File.ReadAllLines(path).Select(e => e.Trim()).ToList();
-        lines = [.. lines.Where(e => !string.IsNullOrWhiteSpace(e) && !e.StartsWith("#"))];
 
         // Construct entries
         List<Entry> entries = [];
@@ -60,45 +62,25 @@ public static class ConsoleUtils
         for (int i = 0; i < lines.Count; i++) 
         {
             string line = lines[i];
-            var lineWithoutPrefix = line[1 ..].Trim();
+            bool result = line.ToEntry(out var entry, out var error, lists, list);
 
-            if (line.StartsWith("!"))
+            if (!result)
             {
-                entries.Add(new(EntryType.App, lineWithoutPrefix));
+                if (error != null) errors.Add(i, error);
                 continue;
             }
 
-            if (line.StartsWith("@"))
-            {
-                if (!lists.Select(e => e.Name).Contains(lineWithoutPrefix))
-                {
-                    errors.Add(i, $"Missing list was removed: {lineWithoutPrefix}");
-                    continue;
-                }
-
-                var entry = new Entry(EntryType.List, lineWithoutPrefix);
-
-                if (list != null && entry.IsRecursive(name => lists.Single(e => e.Name == name), [list]))
-                {
-                    errors.Add(i, $"Recursive list entry was removed: {lineWithoutPrefix}");
-                    continue;
-                }
-
-                entries.Add(entry);
-                continue;
-            }
-                
-            entries.Add(new(EntryType.Website, line.SanitizeUrl()));
+            entries.Add(entry!);
         }
 
         // Remove and log errors
         foreach (var error in errors)
             Warning(error.Value);
 
-        if (errors.Count > 0) Console.WriteLine();
-
         foreach (var error in errors.Reverse())
             lines.RemoveAt(error.Key);
+        
+        if (errors.Count > 0) Console.WriteLine();
 
         // Remove file
         File.Delete(path);
