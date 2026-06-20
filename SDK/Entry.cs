@@ -19,4 +19,9 @@ public class Entry(EntryType type, string name)
         return entry.Type == Type && entry.Name == Name;
     }
 
+    public override int GetHashCode()
+    {
+        return Type.GetHashCode() + Name.GetHashCode();
+    }
+
 }

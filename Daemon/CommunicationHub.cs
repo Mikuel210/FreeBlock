@@ -82,7 +82,6 @@ public class CommunicationHub : Hub
 
     public async Task BlockAsync(List<Entry> entries)
     {
-        // todo check for duplicates
         State.Block.AddRange(entries.Where(e => !State.Block.Contains(e)));
         await ApplyChanges();
     }
