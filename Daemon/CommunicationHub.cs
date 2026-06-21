@@ -9,6 +9,23 @@ public class CommunicationHub : Hub
 
     #region Actions
 
+    // Blocking
+
+    public async Task BlockAsync(List<Entry> entries)
+    {
+        State.Block.AddRange(entries.Where(e => !State.Block.Contains(e)));
+        await ApplyChanges();
+    }
+
+    public async Task UnblockAsync(List<Entry> entries)
+    {
+        State.Block = [.. State.Block.Where(e => !entries.Contains(e))];
+        await ApplyChanges();
+    }
+
+
+    // Lists
+
     public async Task AddListAsync(List list, string contents)
     {
         WriteFile(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"), contents);
@@ -48,7 +65,7 @@ public class CommunicationHub : Hub
                 entry.Name = newName;
         }
 
-        var paths = Directory.GetFiles(Platform.ListsDirectory).Append(Platform.BlockPath);
+        var paths = Directory.GetFiles(Platform.ListsDirectory);
 
         foreach (var path in paths)
         {
@@ -80,23 +97,27 @@ public class CommunicationHub : Hub
         await ApplyChanges();
     }
 
-    public async Task BlockAsync(List<Entry> entries)
-    {
-        State.Block.AddRange(entries.Where(e => !State.Block.Contains(e)));
-        await ApplyChanges();
-    }
+    public Task<string> GetListContentsAsync(List list)
+        => File.ReadAllTextAsync(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
+    
+    // Locks
 
-    public async Task UnblockAsync(List<Entry> entries)
-    {
-        State.Block = [.. State.Block.Where(e => !entries.Contains(e))];
-        await ApplyChanges();
-    }
-
-    public async Task LockAsync(Lock @lock)
+    public async Task AddLockAsync(Lock @lock)
     {
         State.Locks.Add(@lock);
         await ApplyChanges();
     }
+
+    public async Task EditLockAsync(Lock @lock)
+    {
+        var localLock = GetLocalLock(@lock);
+        localLock.Entries = @lock.Entries;
+
+        await ApplyChanges();
+    }
+
+    
+    // Schedules
 
     public async Task AddScheduleAsync(Schedule schedule)
     {
@@ -140,6 +161,9 @@ public class CommunicationHub : Hub
         State.Save();
     }
 
+
+    // Uninstall
+
     public async Task UninstallAsync() 
     {
         File.WriteAllText(Platform.HostsPath, Config.Get<string>(nameof(Config.DefaultValue.hosts)));
@@ -147,9 +171,6 @@ public class CommunicationHub : Hub
     } 
 
     public async Task RemovePreferencesAsync() => await Platform.RemovePreferences.Run();
-
-    public Task<string> GetListContentsAsync(List list)
-        => File.ReadAllTextAsync(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
 
     #endregion
 
@@ -170,20 +191,28 @@ public class CommunicationHub : Hub
     public async Task<List<Schedule>> GetSchedulesAsync()
         => State.Schedules;
 
+
     private static T? GetFromName<T>(List<T> list, string name) where T : IName
         => list.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
 
     public async Task<List?> GetListFromNameAsync(string name)
         => GetFromName(State.Lists, name);
 
+    public async Task<Lock?> GetLockFromNameAsync(string name)
+        => GetFromName(State.Locks, name);
+
     public async Task<Schedule?> GetScheduleFromNameAsync(string name)
         => GetFromName(State.Schedules, name);
+
 
     private static T GetLocal<T>(List<T> list, T client) where T : IName
         => list.First(e => e.Name.Equals(client.Name, StringComparison.InvariantCultureIgnoreCase));
 
     private static List GetLocalList(List clientList)
         => GetLocal(State.Lists, clientList);
+
+    private static Lock GetLocalLock(Lock clientLock)
+        => GetLocal(State.Locks, clientLock);
 
     private static Schedule GetLocalSchedule(Schedule clientSchedule)
         => GetLocal(State.Schedules, clientSchedule);

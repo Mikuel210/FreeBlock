@@ -9,7 +9,6 @@
 - [About](#about)
 - [Key Features](#key-features)
 - [Usage](#usage)
-- [Tutorial](#tutorial)
 - [Getting Started](#getting-started)
 - [Contributing](#contributing)
 - [Roadmap](#roadmap)
@@ -20,45 +19,51 @@ FreeBlock is a cross-platform blocker that helps you focus by managing access to
 
 ## Key Features
 
-- **Manual blocking:** Create block lists and block them manually
-- **Timed locks:** Prevent disabling lists until a timer runs out
-- **Scheduled blocking:** Create schedules to enable lists automatically
+- **Manual blocking:** Block websites and apps on-demand
+- **Timed locks:** Block websites and apps until a timer runs out
+- **Scheduled blocking:** Create schedules to block entries automatically
 - **No setup:** Supports all browsers and apps with no setup out of the box
 - **Cross-platform:** Supports Linux, macOS and Windows
-- **No workarounds:** Once you block a list, there's no way to bypass it
+- **No workarounds:** Once you block something, there's no way to bypass it
 
 ## Usage
 
-- `freeblock -h, --help`: Show all available commands.
-- `freeblock -v, --version`: Show the FreeBlock version.
-- `freeblock status`: Show the current status of block lists and schedules, where green means active.
-- `freeblock list add`: Create a new block list. Type one app or website to block per line.
-- `freeblock list edit`: Edit the websites of a block list. Removing websites while the list is active is not allowed.
+**Usage:** freeblock [-v | --version] [-h | --help] [--uninstall] \<command> [\<args>]
+
+**Manage blocking:**
+- `freeblock status`: Show the current status of blocking, where green means active.
+- `freeblock block`: Enable manual block for one or more entries.
+- `freeblock unblock`: Disable manual block for one or more entries.
+
+**Manage block lists:**
+- `freeblock list add`: Create a new block list from a set of entries.
+- `freeblock list edit`: Edit the entries of a block list.
 - `freeblock list rename`: Rename a block list.
-- `freeblock list remove`: Remove a block list. Removing lists while they're active is not allowed.
-- `freeblock block`: Enable manual block for a list.
-- `freeblock unblock`: Disable manual block for a list.
-- `freeblock lock`: Lock a list for the provided amount of time. You won't be able to disable it until the timer ends.
-- `freeblock schedule add`: Create a new schedule.
+- `freeblock list remove`: Remove a block list.
+
+**Manage locks:**
+- `freeblock lock add`: Block one or more entries for the provided amount of time.
+- `freeblock lock edit`: Edit the entries of a lock.
+- `freeblock lock rename`: Rename a lock.
+
+**Manage schedules:**
+- `freeblock schedule add`: Create a new schedule to enable entries automatically.
 - `freeblock schedule edit`: Edit the properties of a schedule.
 - `freeblock schedule rename`: Rename a schedule.
-- `freeblock schedule remove`: Remove a schedule. Removing schedules while they're active is not allowed.
-- `freeblock --uninstall`: Uninstall FreeBlock.
+- `freeblock schedule remove`: Remove a schedule.
 
-## Tutorial
-
-See [TUTORIAL.md](https://github.com/Mikuel210/FreeBlock/blob/main/TUTORIAL.md)
+See [TUTORIAL.md](https://github.com/Mikuel210/FreeBlock/blob/main/TUTORIAL.md) for a full guide on how to use FreeBlock.
 
 ## Getting Started
 
-> Note that FreeBlock is a work in progress. Expect some rough edges.
-
-### Linux
+### Linux (systemd)
 
 1. Download and unzip the [latest release](https://github.com/Mikuel210/FreeBlock/releases/latest)
 2. In the release directory, run `install.sh`
 
-### macOS and Windows
+> Note that FreeBlock is a work in progress. Expect some rough edges.
+
+### Other platforms
 
 Builds for macOS and Windows are coming soon! In the meantime, you can **build from source**:
 
@@ -67,11 +72,11 @@ Builds for macOS and Windows are coming soon! In the meantime, you can **build f
 3. Build the CLI and add it to your PATH
 4. Build the Daemon and register it as a service running as root/administrator
 
-> Note that some features might not be available for macOS or Windows as of now
+> Note that notifications and the `--uninstall` command are not available for macOS or Windows as of now
 
 ## Contributing
 
-If you spot any bugs, have any feature requests or just want to share your thoughts, feel free to open a discussion or a pull request!
+If you spot any bugs, have any feature requests or just want to share your thoughts, feel free to open an issue or a discussion!
 
 ## Roadmap
 
@@ -82,11 +87,13 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 - [x] Blocking apps
 - [x] Editing schedules
 - [x] Requesting schedule removal
-- [ ] Break feature
+- [x] Unified entry system
 - [ ] macOS and Windows builds
-- [ ] Preventing known workarounds
-- [ ] Self hosting (sync across devices)
-- [ ] GUI Implementation
+- [ ] Break feature
+- [ ] More configuration options
+- [ ] Self hosting
+- [ ] Android client
+- [ ] Graphical dashboard
 
 ---
 

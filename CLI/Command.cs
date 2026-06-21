@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using SDK;
+using Lock = SDK.Lock;
 
 namespace CLI;
 
@@ -65,15 +66,15 @@ public record EntriesArgument(string Name) : Argument<List<Entry>>(Name, true)
     }
 }
 
-public record ListArgument(string Name) : Argument<List>(Name)
+public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IName
 {
     public override async Task<bool> Validate(string input)
     {
-        Value = await ConnectionManager.Connection!.InvokeAsync<List>("GetListFromNameAsync", input);
+        Value = await ConnectionManager.Connection!.InvokeAsync<T>($"Get{typeof(T).Name}FromNameAsync", input);
 
         if (Value == null)
         {
-            Console.WriteLine($"List not found: {input}");
+            Console.WriteLine($"{typeof(T).Name} not found: {input}");
             return false;
         }
 
@@ -81,15 +82,25 @@ public record ListArgument(string Name) : Argument<List>(Name)
     }
 }
 
-public record AddListArgument(string Name) : Argument<string>(Name)
+public record AddINameArgument<T>(string Name) : Argument<string>(Name) where T : IName
 {
     public override async Task<bool> Validate(string input)
     {
-        var list = await ConnectionManager.Connection!.InvokeAsync<List>("GetListFromNameAsync", input);
+        // Check if object already exists
+        var @object = await ConnectionManager.Connection!.InvokeAsync<T>($"Get{typeof(T).Name}FromNameAsync", input);
 
-        if (list != null)
+        if (@object != null)
         {
-            Console.WriteLine($"List already exists: {input}");
+            Console.WriteLine($"{typeof(T).Name} already exists: {input}");
+            return false;
+        }
+
+        // Restrict name
+        foreach (var character in input)
+        {
+            if (char.IsLetterOrDigit(character) || character == '-' || character == '_') continue;
+            
+            Console.WriteLine("Name can only contain letters, digits, '-' and '_'");
             return false;
         }
 
@@ -98,38 +109,13 @@ public record AddListArgument(string Name) : Argument<string>(Name)
     }
 }
 
-public record ScheduleArgument(string Name) : Argument<Schedule>(Name)
-{
-    public override async Task<bool> Validate(string input)
-    {
-        Value = await ConnectionManager.Connection!.InvokeAsync<Schedule>("GetScheduleFromNameAsync", input);
+// Lists
+public record ListArgument(string Name) : INameArgument<List>(Name);
+public record AddListArgument(string Name) : AddINameArgument<List>(Name);
 
-        if (Value == null)
-        {
-            Console.WriteLine($"Schedule not found: {input}");
-            return false;
-        }
-
-        return true;
-    }
-}
-
-public record AddScheduleArgument(string Name) : Argument<string>(Name)
-{
-    public override async Task<bool> Validate(string input)
-    {
-        var list = await ConnectionManager.Connection!.InvokeAsync<Schedule>("GetScheduleFromNameAsync", input);
-
-        if (list != null)
-        {
-            Console.WriteLine($"Schedule already exists: {input}");
-            return false;
-        }
-
-        Value = input;
-        return true;
-    }
-}
+// Locks
+public record LockArgument(string Name) : INameArgument<Lock>(Name);
+public record AddLockArgument(string Name) : AddINameArgument<Lock>(Name);
 
 public record TimeArgument(string Name) : Argument<TimeOnly>(Name)
 {
@@ -147,6 +133,10 @@ public record TimeArgument(string Name) : Argument<TimeOnly>(Name)
         return true;
     }
 }
+
+// Schedules
+public record ScheduleArgument(string Name) : INameArgument<Schedule>(Name);
+public record AddScheduleArgument(string Name) : AddINameArgument<Schedule>(Name);
 
 public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
 {
@@ -193,7 +183,7 @@ public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
             });
         }
 
-        Value = days.ToArray();
+        Value = [.. days];
         return true;
     }
 }

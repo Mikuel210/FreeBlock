@@ -49,7 +49,7 @@ public static class CommandSystem
             // Validate argument
         Validate:
             var result = await argument.Validate(argsList[i]);
-            if (hasRead) Console.WriteLine();
+            if (hasRead || (!hasRead && !result)) Console.WriteLine();
 
             // Remove incorrect argument from array
             if (result) continue;

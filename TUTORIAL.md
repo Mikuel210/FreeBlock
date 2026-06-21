@@ -1,6 +1,8 @@
 ![FreeBlock Tutorial](Images/tutorial.png)
 
-> Last update: v0.4.1
+> Last update: v1.0.0
+
+// todo redo tutorial
 
 ## Navigation
 
@@ -26,21 +28,20 @@ FreeBlock allows you to restrict access to distracting apps and websites to focu
 
 ## Key Concepts
 
-- A **block list** is a collection of apps and websites you can block
-- When a list is **enabled**, all of its apps and websites are blocked
-- **Manual block** allows you to enable or disable a list on-demand
-- **Timed locks** enable a list until a timer runs out
-- **Schedules** enable lists automatically in certain time periods
-- A list will be enabled if it's either locked, scheduled, or blocked manually
+- **Entries** are websites, apps or block lists
+- **Manual block** allows you to block entries on-demand
+- **Timed locks** block entries until a timer runs out
+- **Schedules** block entries automatically in certain time periods
+- **Block lists** are collections that group multiple entries
 
 ## Basic Usage
 
-`freeblock [command] [arguments]`
+Usage: freeblock \<command> [\<args>]
 
 - `freeblock -h, --help` shows all the available commands
 - `freeblock status` shows the current status of block lists and schedules, where green means enabled
 
-> Note: If an argument required by the command is not provided, you will be prompted to provide it afterwards. This means you can either provide arguments through the command line or afterwards through `stdin`.
+> Note: If an argument required by the command is not provided, you will be prompted to provide it afterwards. This means you can either provide arguments through the command line or afterwards interactively.
 
 ## Creating a Block List
 
