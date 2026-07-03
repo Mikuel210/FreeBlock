@@ -2,6 +2,9 @@
 
 **FreeBlock is a free and open source CLI website and app blocker for Linux, macOS and Windows.**
 
+> [!IMPORTANT]
+> v1.0.0 Released featuring a unified entry system, improved locks and cross-platform builds
+
 ![FreeBlock Screenshot](Images/Screenshot.png)
 
 ## Navigation
@@ -43,7 +46,7 @@ FreeBlock is a cross-platform blocker that helps you focus by managing access to
 
 **Manage locks:**
 - `freeblock lock add`: Block one or more entries for the provided amount of time.
-- `freeblock lock edit`: Edit the entries of a lock.
+- `freeblock lock edit`: Add entries to a lock.
 - `freeblock lock rename`: Rename a lock.
 
 **Manage schedules:**
@@ -56,23 +59,19 @@ See [TUTORIAL.md](https://github.com/Mikuel210/FreeBlock/blob/main/TUTORIAL.md) 
 
 ## Getting Started
 
-### Linux (systemd)
+### Linux and macOS
 
-1. Download and unzip the [latest release](https://github.com/Mikuel210/FreeBlock/releases/latest)
+1. Download and unzip the [latest release](https://github.com/Mikuel210/FreeBlock/releases/latest) for your platform
 2. In the release directory, run `install.sh`
 
-> Note that FreeBlock is a work in progress. Expect some rough edges.
+> [!NOTE]
+> The installer for Linux only works with `systemd` as of now. If you use a different init system, you might need to register the daemon service manually.
 
-### Other platforms
+### Windows
 
-Builds for macOS and Windows are coming soon! In the meantime, you can **build from source**:
-
-1. Make sure the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) is installed
-2. Clone the repository
-3. Build the CLI and add it to your PATH
-4. Build the Daemon and register it as a service running as root/administrator
-
-> Note that notifications and the `--uninstall` command are not available for macOS or Windows as of now
+1. Open PowerShell as administrator
+2. Run `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process` to allow for unsigned scripts to run
+3. In the release directory, run `install.ps1`
 
 ## Contributing
 
@@ -88,7 +87,7 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 - [x] Editing schedules
 - [x] Requesting schedule removal
 - [x] Unified entry system
-- [ ] macOS and Windows builds
+- [x] macOS and Windows builds
 - [ ] Break feature
 - [ ] More configuration options
 - [ ] Self hosting

@@ -5,7 +5,7 @@ namespace Daemon;
 public static class NotificationManager
 {
 
-    public static async Task UpdateAsync()
+    public static void Update()
     {
         foreach (var schedule in State.Schedules)
         {
@@ -13,20 +13,14 @@ public static class NotificationManager
             var endTime = startTime.Add(TimeSpan.FromSeconds(1));
 
             if (!Schedule.IsActive(startTime, schedule.EndTime, schedule.Days) || Schedule.IsActive(endTime, schedule.EndTime, schedule.Days)) continue;
-            await NotifyAsync($"Schedule starting soon: {schedule.Name}", "All browsers and all blocked apps will close in 1 minute");
+            Notify($"Schedule starting soon: {schedule.Name}", "All browsers and all blocked apps will close in 1 minute");
         }
     }
 
-    private static async Task NotifyAsync(string title, string body)
+    private static void Notify(string title, string body)
     {
         foreach (var user in Platform.GetCurrentUsers())
-        {
-            await Platform.SendNotification.Run(
-                user,
-                title,
-                body
-            );
-        }
+            Platform.SendNotification(user, title, body);
     }
 
 }

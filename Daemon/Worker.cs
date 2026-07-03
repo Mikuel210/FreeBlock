@@ -10,7 +10,7 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
         while (!token.IsCancellationRequested)
         {
             State.Update();
-            await NotificationManager.UpdateAsync();
+            NotificationManager.Update();
             await Blocker.UpdateAsync();
 
             if (logger.IsEnabled(LogLevel.Information))

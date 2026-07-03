@@ -1,6 +1,7 @@
 using Daemon;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddWindowsService(options => options.ServiceName = "freeblockd");
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddSignalR();
 

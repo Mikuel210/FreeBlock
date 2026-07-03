@@ -96,7 +96,7 @@ CommandSystem.Register(new Command(
     ["lock", "add"],
     [
         new AddLockArgument("name"),
-        new TimeArgument("time"),
+        new TimeSpanArgument("time"),
         new EntriesArgument("entries")
     ],
     AddLock
@@ -540,9 +540,9 @@ async Task RemoveList(ListArgument argument)
 
 // Locks
 
-async Task AddLock(AddLockArgument nameArgument, TimeArgument timeArgument, EntriesArgument entriesArgument)
+async Task AddLock(AddLockArgument nameArgument, TimeSpanArgument timeArgument, EntriesArgument entriesArgument)
 {
-    var time = timeArgument.Value!.ToTimeSpan();
+    var time = timeArgument.Value!;
     var unlockTime = DateTime.Now.Add(time);
     var @lock = new Lock(nameArgument.Value!, entriesArgument.Value!, unlockTime);
 

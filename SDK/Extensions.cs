@@ -114,7 +114,7 @@ public static class Extensions
         string daysString;
 
         if (days.SequenceEqual(Enum.GetValues<DayOfWeek>())) 
-            daysString = "all";
+            daysString = "everyday";
         else if (days.SequenceEqual([DayOfWeek.Saturday, DayOfWeek.Sunday]))
             daysString = "weekends";
         else if (days.SequenceEqual([DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]))

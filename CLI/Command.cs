@@ -117,15 +117,15 @@ public record AddListArgument(string Name) : AddINameArgument<List>(Name);
 public record LockArgument(string Name) : INameArgument<Lock>(Name);
 public record AddLockArgument(string Name) : AddINameArgument<Lock>(Name);
 
-public record TimeArgument(string Name) : Argument<TimeOnly>(Name)
+public record TimeSpanArgument(string Name) : Argument<TimeSpan>(Name)
 {
     public override async Task<bool> Validate(string input)
     {
-        var result = TimeOnly.TryParse(input, out var value);
+        var result = TimeSpan.TryParse(input, out var value);
 
         if (!result)
         {
-            Console.WriteLine($"[{Name}] must be a valid time (HH:MM:SS)");
+            Console.WriteLine($"[{Name}] must be a valid time of the day (HH:MM:SS, 00:00 - 23:59)");
             return false;
         }
 
@@ -142,7 +142,7 @@ public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
 {
     public override async Task<bool> Validate(string input)
     {
-        if (input.Equals("all", StringComparison.InvariantCultureIgnoreCase))
+        if (input.Equals("everyday", StringComparison.InvariantCultureIgnoreCase))
         {
             Value = Enum.GetValues<DayOfWeek>();
             return true;
@@ -166,7 +166,7 @@ public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
         {
             if (!"mtwhfsu".Contains(day))
             {
-                Console.WriteLine($"[{Name}] must be days of the week: MTWHFSU/weekdays/weekends/all");
+                Console.WriteLine($"[{Name}] must be days of the week: MTWHFSU/weekdays/weekends/everyday");
                 return false;
             }
 
@@ -184,6 +184,22 @@ public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
         }
 
         Value = [.. days];
+        return true;
+    }
+}
+public record TimeArgument(string Name) : Argument<TimeOnly>(Name)
+{
+    public override async Task<bool> Validate(string input)
+    {
+        var result = TimeOnly.TryParse(input, out var value);
+
+        if (!result)
+        {
+            Console.WriteLine($"[{Name}] must be a valid time (HH:MM:SS)");
+            return false;
+        }
+
+        Value = value;
         return true;
     }
 }

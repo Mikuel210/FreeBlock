@@ -43,7 +43,7 @@ public static class Blocker
 
     public static async Task UpdateAsync()
     {
-        await CloseApps();
+        CloseApps();
 
         // Skip if no changes detected
         var blockedWebsites = BlockedEntries.Where(e => e.Type == EntryType.Website).Select(e => e.Name).ToArray();
@@ -113,7 +113,7 @@ public static class Blocker
             .ToList().ForEach(e => e.Kill());
     }
 
-    public static async Task CloseApps()
+    public static void CloseApps()
     {
         var blockedApps = BlockedEntries.Where(e => e.Type == EntryType.App).Select(e => e.Name).ToArray();
         var apps = Process.GetProcesses().Where(e => blockedApps.Contains(e.ProcessName)).ToList();
@@ -127,7 +127,7 @@ public static class Blocker
         string body = string.Join(", ", appNames);
 
         foreach (var user in Platform.GetCurrentUsers())
-            await Platform.SendNotification.Run(user, title, body);
+            Platform.SendNotification(user, title, body);
     }
 
 }
