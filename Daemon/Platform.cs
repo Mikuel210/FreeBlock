@@ -178,6 +178,10 @@ public static class Platform
                     "del",
                     "\"C:\\Program Files\\FreeBlock\\freeblock.exe\" " +
                     "\"C:\\Program Files\\FreeBlock\\freeblockd.exe\" /f"
+                ),
+                new(
+                    "sc",
+                    "delete freeblockd"
                 )
             ]);
 

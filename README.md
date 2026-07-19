@@ -1,11 +1,11 @@
-![FreeBlock Logo](Images/logo.png)
+![FreeBlock Logo](Projects/Soup/FreeBlock/Code/Images/logo.png)
 
 **FreeBlock is a free and open source CLI website and app blocker for Linux, macOS and Windows.**
 
 > [!IMPORTANT]
-> v1.0.0 Released featuring a unified entry system, improved locks and cross-platform builds
+> v0.6 Released featuring a unified entry system, improved locks and cross-platform builds
 
-![FreeBlock Screenshot](Images/Screenshot.png)
+![FreeBlock Screenshot](Screenshot.png)
 
 ## Navigation
 
@@ -88,6 +88,7 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 - [x] Requesting schedule removal
 - [x] Unified entry system
 - [x] macOS and Windows builds
+- [ ] Enforcement options
 - [ ] Break feature
 - [ ] More configuration options
 - [ ] Self hosting
@@ -98,4 +99,5 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 
 Made with ❤️ for [Horizons](http://horizons.hackclub.com) thanks to [Hack Club](https://hackclub.com)
 
+> [!NOTE]
 > No AI was used in this project for any documentation or code except for install and migration scripts

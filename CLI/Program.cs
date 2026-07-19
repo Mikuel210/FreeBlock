@@ -307,7 +307,7 @@ async Task ShowStatus()
     }
 }
 
-async Task ShowVersion() => Console.WriteLine("v1.0.0");
+async Task ShowVersion() => Console.WriteLine("v0.6.0");
 
 async Task Uninstall() 
 {
@@ -318,6 +318,12 @@ async Task Uninstall()
         state.Schedules.Where(e => e.Active).SelectMany(e => e.Entries).Count() > 0)
     {
         ConsoleUtils.Error("To prevent impulsive choices, FreeBlock can't be uninstalled while blocking is taking place");
+        return;
+    }
+
+    if (state.Schedules.Count() > 0)
+    {
+        ConsoleUtils.Error("To prevent impulsive choices, FreeBlock can't be uninstalled if there are schedules in place");
         return;
     }
 
@@ -380,8 +386,8 @@ async Task Block(EntriesArgument argument)
     if (!allAlreadyActive && !ConsoleUtils.PromptClose()) return;
     await ConnectionManager.Connection!.InvokeAsync("BlockAsync", entries);
     
-    if (entries.Count == 1) Console.WriteLine($"Disabled manual block for entry: {entries[0].ToEntryString()}");
-    else Console.WriteLine($"Disabled manual block for entries");
+    if (entries.Count == 1) Console.WriteLine($"Enabled manual block for entry: {entries[0].ToEntryString()}");
+    else Console.WriteLine($"Enabled manual block for entries");
 }
 
 async Task Unblock(EntriesArgument argument)
@@ -406,7 +412,7 @@ async Task Unblock(EntriesArgument argument)
             if (!list.Entries.Contains(entry)) continue;
             var listEntry = new Entry(EntryType.List, list.Name);
 
-            ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a list: {list.Name}");
+            ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a list: {list.Name}"); // TODO: check if you're unblocking that list as well
             writeLine = true;
         }
 

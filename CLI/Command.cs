@@ -125,7 +125,7 @@ public record TimeSpanArgument(string Name) : Argument<TimeSpan>(Name)
 
         if (!result)
         {
-            Console.WriteLine($"[{Name}] must be a valid time of the day (HH:MM:SS, 00:00 - 23:59)");
+            Console.WriteLine($"[{Name}] must be a valid timespan (HH:MM(:SS))");
             return false;
         }
 
@@ -187,6 +187,7 @@ public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
         return true;
     }
 }
+
 public record TimeArgument(string Name) : Argument<TimeOnly>(Name)
 {
     public override async Task<bool> Validate(string input)
