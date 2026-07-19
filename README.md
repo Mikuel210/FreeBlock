@@ -1,11 +1,11 @@
-![FreeBlock Logo](Projects/Soup/FreeBlock/Code/Images/logo.png)
+![FreeBlock Logo](Images/logo.png)
 
 **FreeBlock is a free and open source CLI website and app blocker for Linux, macOS and Windows.**
 
 > [!IMPORTANT]
 > v0.6 Released featuring a unified entry system, improved locks and cross-platform builds
 
-![FreeBlock Screenshot](Screenshot.png)
+![FreeBlock Screenshot](Images/image-1.png)
 
 ## Navigation
 
@@ -58,6 +58,8 @@ FreeBlock is a cross-platform blocker that helps you focus by managing access to
 See [TUTORIAL.md](https://github.com/Mikuel210/FreeBlock/blob/main/TUTORIAL.md) for a full guide on how to use FreeBlock.
 
 ## Getting Started
+
+> Windows and macOS builds are untested, please let me know if you face any issues!
 
 ### Linux and macOS
 
