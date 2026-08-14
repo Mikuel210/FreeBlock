@@ -66,7 +66,7 @@ public record EntriesArgument(string Name) : Argument<List<Entry>>(Name, true)
     }
 }
 
-public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IName
+public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IAgent
 {
     public override async Task<bool> Validate(string input)
     {
@@ -82,7 +82,7 @@ public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IName
     }
 }
 
-public record AddINameArgument<T>(string Name) : Argument<string>(Name) where T : IName
+public record AddINameArgument<T>(string Name) : Argument<string>(Name) where T : IAgent
 {
     public override async Task<bool> Validate(string input)
     {

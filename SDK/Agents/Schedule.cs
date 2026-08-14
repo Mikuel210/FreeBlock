@@ -1,12 +1,13 @@
 namespace SDK;
 
-public class Schedule : IName
+public class Schedule : IAgent<ScheduleOptions>
 {
 
     public string Name { get; set; } = string.Empty;
-    public List<Entry> Entries { get; set; } = [];
+    public ScheduleOptions Options { get; } = new();
 
     // Properties
+    public List<Entry> Entries { get; set; } = [];
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
     public DayOfWeek[] Days { get; set; } = [];

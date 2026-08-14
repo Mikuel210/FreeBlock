@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace SDK;
 
 public class List : IName

@@ -9,7 +9,7 @@ public static class NotificationManager
     {
         foreach (var schedule in State.Schedules)
         {
-            var startTime = schedule.StartTime.AddMinutes(-1); // TODO: Config
+            var startTime = schedule.StartTime.Add(-schedule.Options.WarningTime);
             var endTime = startTime.Add(TimeSpan.FromSeconds(1));
 
             if (!Schedule.IsActive(startTime, schedule.EndTime, schedule.Days) || Schedule.IsActive(endTime, schedule.EndTime, schedule.Days)) continue;
