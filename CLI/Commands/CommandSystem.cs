@@ -29,34 +29,42 @@ public static class CommandSystem
             argsList = [.. argsList.GetRange(0, command.Arguments.Count - 1), lastArgument];
         }
 
-        await Validate(command, argsList);
+        int i = await ValidateArguments(command, [.. argsList]);
+
+        // Validate flags
+        object?[] parameters = [.. command.Arguments];
+        var flags = await ValidateFlags(command, [.. argsList], i); // Run validation for every command to catch unexpected arguments
+
+        if (command.Flags.Count > 0)
+            parameters = [.. parameters, flags];
 
         // Run command
-        if (command.Run.DynamicInvoke([.. command.Arguments]) is Task task)
+        if (command.Run.DynamicInvoke(parameters) is Task task)
             await task;
     }
 
-    private static async Task Validate(Command command, List<string> argsList) 
+    private static async Task<int> ValidateArguments(Command command, List<string> argsList) 
     {
         bool hasRead = false;
+        int i = 0;
 
-        for (int i = 0; i < command.Arguments.Count; i++)
+        while (true)
         {
+            if (i >= command.Arguments.Count) break;
+
             // Read if no argument provided
             var argument = command.Arguments[i];
             if (argsList.Count <= i) goto Read;
 
-            // Validate argument
-        Validate:
+            Validate:
             var result = await argument.Validate(argsList[i]);
             if (hasRead || (!hasRead && !result)) Console.WriteLine();
 
             // Remove incorrect argument from array
-            if (result) continue;
+            if (result) goto Continue;
             argsList.RemoveRange(i, argsList.Count - i);
 
-            // Read argument
-        Read:
+            Read:
             string space = (argsList.Count == 0 || argsList[0] == string.Empty) ? "" : " ";
             string defaultArg = command.GetDefault != null ? await command.GetDefault(command, i) : "";
 
@@ -82,7 +90,12 @@ public static class CommandSystem
             // Add argument to array
             argsList.Add(input);
             goto Validate;
+
+            Continue:
+            i++;
         }
+
+        return i;
     }
 
     private static Command? GetMatchingCommand(string[] args)
@@ -100,6 +113,49 @@ public static class CommandSystem
         }
 
         return null;
+    }
+
+    private static async Task<List<IFlag>> ValidateFlags(Command command, List<string> argsList, int i)
+    {
+        bool warnings = false;
+        List<IFlag> flags = [];
+
+        while (true)
+        {
+            if (i >= argsList.Count) break;
+
+            string token = argsList[i];
+            
+            foreach (var flag in command.Flags)
+            {
+                if (token != flag.LongName && token != flag.ShortName) continue;
+
+                if (flag.IsSwitch)
+                {
+                    flags.Add(flag);
+                    goto Continue;
+                }
+
+                i++;
+                token = argsList[i];
+                
+                if (await flag.Validate(token))
+                {
+                    flags.Add(flag);
+                    goto Continue;
+                }
+            }
+
+            // Unrecognized flag
+            ConsoleUtils.Warning($"Unexpected argument: {token}");
+            warnings = true;
+
+            Continue:
+            i++;
+        }
+
+        if (warnings) Console.WriteLine();
+        return flags;
     }
 
 }

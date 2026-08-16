@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.SignalR.Client;
-using SDK;
+using Core;
 
 namespace CLI;
 

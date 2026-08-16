@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
-using SDK;
-using Lock = SDK.Lock;
+using Microsoft.AspNetCore.SignalR.Client;
+using Core;
+using Lock = Core.Lock;
 
 namespace CLI;
 
@@ -20,9 +20,6 @@ public abstract record Argument<T>(string Name, bool Params = false) : IArgument
 
     public abstract Task<bool> Validate(string input);
 }
-
-public record Command(string[] Route, List<IArgument> Arguments, Delegate Run, bool Edit = false, 
-                      Func<Command, int, Task<string>>? GetDefault = null);
 
 #region Arguments
 
@@ -66,7 +63,7 @@ public record EntriesArgument(string Name) : Argument<List<Entry>>(Name, true)
     }
 }
 
-public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IAgent
+public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IName
 {
     public override async Task<bool> Validate(string input)
     {
@@ -82,7 +79,7 @@ public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IAgent
     }
 }
 
-public record AddINameArgument<T>(string Name) : Argument<string>(Name) where T : IAgent
+public record AddINameArgument<T>(string Name) : Argument<string>(Name) where T : IName
 {
     public override async Task<bool> Validate(string input)
     {

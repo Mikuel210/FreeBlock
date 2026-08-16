@@ -1,48 +1,24 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using SDK;
+using Core;
 using CLI;
-using Lock = SDK.Lock;
+using Lock = Core.Lock;
 
 #region Command System
 
 CommandSystem.Register(new Command(
+    [],
+    Category.Blocking,
+    "The FOSS website and app blocker",
     [],
     [],
     ShowUsage
 ));
 
 CommandSystem.Register(new Command(
-    ["-h"],
-    [],
-    ShowHelp
-));
-
-CommandSystem.Register(new Command(
-    ["--help"],
-    [],
-    ShowHelp
-));
-
-CommandSystem.Register(new Command(
-    ["-v"],
-    [],
-    ShowVersion
-));
-
-CommandSystem.Register(new Command(
-    ["--version"],
-    [],
-    ShowVersion
-));
-
-CommandSystem.Register(new Command(
-    ["--uninstall"],
-    [],
-    Uninstall
-));
-
-CommandSystem.Register(new Command(
     ["status"],
+    Category.Blocking,
+    "Show the current status of blocking",
+    [],
     [],
     ShowStatus
 ));
@@ -52,13 +28,19 @@ CommandSystem.Register(new Command(
 
 CommandSystem.Register(new Command(
     ["block"],
+    Category.Blocking,
+    "Enable manual block for one or more entries",
     [new EntriesArgument("entries")],
+    [],
     Block
 ));
 
 CommandSystem.Register(new Command(
     ["unblock"],
+    Category.Blocking,
+    "Disable manual block for one or more entries",
     [new EntriesArgument("entries")],
+    [],
     Unblock
 ));
 
@@ -67,25 +49,37 @@ CommandSystem.Register(new Command(
 
 CommandSystem.Register(new Command(
     ["list", "add"],
+    Category.Lists,
+    "Create a new block list from a set of entries",
     [new AddListArgument("name")],
+    [],
     AddList
 ));
 
 CommandSystem.Register(new Command(
     ["list", "edit"],
+    Category.Lists,
+    "Edit the entries of a block list",
     [new ListArgument("name")],
+    [],
     EditList
 ));
 
 CommandSystem.Register(new Command(
     ["list", "rename"],
+    Category.Lists,
+    "Rename a block list",
     [new ListArgument("old"), new AddListArgument("new")],
+    [],
     RenameList
 ));
 
 CommandSystem.Register(new Command(
     ["list", "remove"],
+    Category.Lists,
+    "Remove a block list",
     [new ListArgument("name")],
+    [],
     RemoveList
 ));
 
@@ -94,20 +88,26 @@ CommandSystem.Register(new Command(
 
 CommandSystem.Register(new Command(
     ["lock", "add"],
+    Category.Locks,
+    "Block a set of entries until a timer runs out",
     [
         new AddLockArgument("name"),
         new TimeSpanArgument("time"),
         new EntriesArgument("entries")
     ],
+    [],
     AddLock
 ));
 
 CommandSystem.Register(new Command(
     ["lock", "edit"],
+    Category.Locks,
+    "Edit the entries of a lock",
     [
         new LockArgument("name"),
         new EntriesArgument("entries")
     ],
+    [],
     EditLock,
     true,
     async (command, i) => {
@@ -122,10 +122,13 @@ CommandSystem.Register(new Command(
 
 CommandSystem.Register(new Command(
     ["lock", "rename"],
+    Category.Locks,
+    "Rename a lock",
     [
         new LockArgument("old"),
         new AddLockArgument("new")
     ],
+    [],
     RenameLock
 ));
 
@@ -134,6 +137,8 @@ CommandSystem.Register(new Command(
 
 CommandSystem.Register(new Command(
     ["schedule", "add"],
+    Category.Schedules,
+    "Create a schedule to enable entries automatically",
     [
         new AddScheduleArgument("name"),
         new TimeArgument("start"),
@@ -141,11 +146,14 @@ CommandSystem.Register(new Command(
         new DaysArgument("days"),
         new EntriesArgument("entries")
     ],
+    [],
     AddSchedule
 ));
 
 CommandSystem.Register(new Command(
     ["schedule", "edit"],
+    Category.Schedules,
+    "Edit the properties of a schedule",
     [
         new ScheduleArgument("name"),
         new TimeArgument("start"),
@@ -153,6 +161,7 @@ CommandSystem.Register(new Command(
         new DaysArgument("days"),
         new EntriesArgument("entries")
     ],
+    [],
     EditSchedule,
     true,
     async (command, i) => {
@@ -173,13 +182,19 @@ CommandSystem.Register(new Command(
 
 CommandSystem.Register(new Command(
     ["schedule", "rename"],
+    Category.Schedules,
+    "Rename a schedule",
     [new ScheduleArgument("old"), new AddScheduleArgument("new")],
+    [],
     RenameSchedule
 ));
 
 CommandSystem.Register(new Command(
     ["schedule", "remove"],
+    Category.Schedules,
+    "Remove a schedule",
     [new ScheduleArgument("name")],
+    [],
     RemoveSchedule
 ));
 
