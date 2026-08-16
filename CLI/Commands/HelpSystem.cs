@@ -83,15 +83,28 @@ public static class HelpSystem
         }
     }
 
-    private static string GetUsage(Command command)
+    public static void ShowUsage(Command command)
+    {
+        string space = command.IsRoot ? "" : " ";
+
+        Console.WriteLine($"Usage: {GetUsage(command, false)}");
+        Console.WriteLine($"See: freeblock {string.Join(' ', command.Route)}{space}--help");
+    }
+
+    private static string GetUsage(Command command, bool includeFlags = true)
     {
         if (command.IsRoot)
-            return "freeblock [-v | --version] [-h | --help] [--uninstall] <command> [<args>]";
+        {
+            if (includeFlags)
+                return "freeblock [-v | --version] [-h | --help] [--uninstall] <command> [<args>]";
+            
+            return "freeblock <command> [<args>]";
+        }
 
         string arguments = string.Join(' ', command.Arguments.Select(e => $"<{e.Name}>"));
         if (command.Arguments.Any(e => e.Params)) arguments += "...";
 
-        string flags = string.Join(' ', command.Flags.Select(e => {
+        string flags = includeFlags ? string.Join(' ', command.Flags.Select(e => {
             string name = e.LongName;
 
             if (e.ShortName != null)
@@ -104,9 +117,12 @@ public static class HelpSystem
                 return $"[({name}) {value}]";
 
             return $"[{name} {value}]";
-        }));
+        })) : "";
 
-        return $"freeblock {string.Join(' ', command.Route)} {arguments} {flags}";
+        if (command.Executable)
+            return $"freeblock {string.Join(' ', command.Route)} {arguments} {flags}";
+        else
+            return $"freeblock {string.Join(' ', command.Route)} <subcommand>";
     }
 
     private static List<Command> GetSubcommands(Command parent)

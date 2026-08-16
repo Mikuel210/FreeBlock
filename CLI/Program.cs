@@ -11,7 +11,7 @@ CommandSystem.Register(new Command(
     "The FOSS website and app blocker",
     [],
     [],
-    ShowUsage,
+    () => {},
     Executable: false,
     IsRoot: true
 ));

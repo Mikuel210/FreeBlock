@@ -14,21 +14,36 @@ public static class CommandSystem
         args = [.. args.Select(e => e.Trim())];
         var command = GetMatchingCommand(args);
 
-        if (command == null)
-        {
-            Console.WriteLine($"Command not found: freeblock {string.Join(' ', args)}");
-            Console.WriteLine("See: freeblock --help");
-            return;
-        }
-
-        args = [.. args.Skip(command.Route.Length)];
+        if (command != null)
+            args = [.. args.Skip(command.Route.Length)];
 
         // Find positional and flag tokens
         int flagStart = Array.FindIndex(args, a => a.StartsWith('-'));
-        if (flagStart < command.Arguments.Count) flagStart = -1;
+        if (flagStart < command?.Arguments.Count) flagStart = -1;
 
         var positional = flagStart == -1 ? args : args[.. flagStart];
         var flagTokens = flagStart == -1 ? [] : args[flagStart ..];
+
+        if (command == null)
+        {
+            Console.WriteLine($"Command not found: freeblock {string.Join(' ', positional)}");
+            Console.WriteLine("See: freeblock --help");
+            return;
+        }
+        
+        // Trigger help
+        if (args.Any(e => e is "-?" or "-h" or "--help")) 
+        {
+            HelpSystem.ShowHelp(command);
+            return;
+        }
+
+        // Trigger usage
+        if (!command.Executable) 
+        {
+            HelpSystem.ShowUsage(command);
+            return;
+        }
 
         // Validate arguments
         var positionalList = positional.ToList();
@@ -37,13 +52,6 @@ public static class CommandSystem
         {
             var lastArgument = string.Join(' ', positionalList.Skip(command.Arguments.Count - 1));
             positionalList = [.. positionalList.GetRange(0, command.Arguments.Count - 1), lastArgument];
-        }
-
-        // Trigger help
-        if ((!command.Executable && !command.IsRoot) || args.Any(e => e is "-?" or "-h" or "--help")) 
-        {
-            HelpSystem.ShowHelp(command);
-            return;
         }
 
         await ValidateArguments(command, [.. positionalList]);
