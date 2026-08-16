@@ -185,7 +185,7 @@ I'm going to create a lock to help me focus for 30 minutes. To do that, I'll use
 ![Tutorial Screenshot](Images/image-15.png)
 
 > [!NOTE]
-> `[time]` is the duration of the lock in the following format: HH:MM(:SS)
+> `[time]` is the duration of the lock in the following format: HH:MM[:SS]
 
 If I now run `freeblock status`, the lock we just created will appear. It shows the time it will end, and the list `distractions` will appear as active because of the lock.
 
@@ -211,8 +211,8 @@ I'm going to create a schedule in order to block distractions at night. To do th
 #### Arguments
 
 - `name`: The name of the schedule
-- `start`: The start time for the schedule (HH:MM(:SS))
-- `end`: The end time for the schedule (HH:MM(:SS))
+- `start`: The start time for the schedule (HH:MM[:SS])
+- `end`: The end time for the schedule (HH:MM[:SS])
 - `days`: The days of the week the schedule is active (weekdays, weekends, everyday, or custom combinations of MTWHSU, e.g. MWS, HSU, MTWH...)
 - `entries`: The set of entries to block
 

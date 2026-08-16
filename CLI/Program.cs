@@ -11,7 +11,9 @@ CommandSystem.Register(new Command(
     "The FOSS website and app blocker",
     [],
     [],
-    ShowUsage
+    ShowUsage,
+    Executable: false,
+    IsRoot: true
 ));
 
 CommandSystem.Register(new Command(
@@ -30,7 +32,7 @@ CommandSystem.Register(new Command(
     ["block"],
     Category.Blocking,
     "Enable manual block for one or more entries",
-    [new EntriesArgument("entries")],
+    [new EntriesArgument("entries", "The entries to block")],
     [],
     Block
 ));
@@ -39,7 +41,7 @@ CommandSystem.Register(new Command(
     ["unblock"],
     Category.Blocking,
     "Disable manual block for one or more entries",
-    [new EntriesArgument("entries")],
+    [new EntriesArgument("entries", "The entries to unblock")],
     [],
     Unblock
 ));
@@ -48,10 +50,20 @@ CommandSystem.Register(new Command(
 // Lists
 
 CommandSystem.Register(new Command(
+    ["list"],
+    Category.Lists,
+    "Manage lists",
+    [],
+    [],
+    () => {},
+    Executable: false
+));
+
+CommandSystem.Register(new Command(
     ["list", "add"],
     Category.Lists,
     "Create a new block list from a set of entries",
-    [new AddListArgument("name")],
+    [new AddListArgument("name", "The name of the new list")],
     [],
     AddList
 ));
@@ -60,7 +72,7 @@ CommandSystem.Register(new Command(
     ["list", "edit"],
     Category.Lists,
     "Edit the entries of a block list",
-    [new ListArgument("name")],
+    [new ListArgument("name", "The name of the list to edit")],
     [],
     EditList
 ));
@@ -69,7 +81,10 @@ CommandSystem.Register(new Command(
     ["list", "rename"],
     Category.Lists,
     "Rename a block list",
-    [new ListArgument("old"), new AddListArgument("new")],
+    [
+        new ListArgument("old", "The old name of the list"),
+        new AddListArgument("new", "The new name of the list")
+    ],
     [],
     RenameList
 ));
@@ -78,7 +93,7 @@ CommandSystem.Register(new Command(
     ["list", "remove"],
     Category.Lists,
     "Remove a block list",
-    [new ListArgument("name")],
+    [new ListArgument("name", "The name of the list to remove")],
     [],
     RemoveList
 ));
@@ -87,13 +102,23 @@ CommandSystem.Register(new Command(
 // Locks
 
 CommandSystem.Register(new Command(
+    ["lock"],
+    Category.Locks,
+    "Manage locks",
+    [],
+    [],
+    () => {},
+    Executable: false
+));
+
+CommandSystem.Register(new Command(
     ["lock", "add"],
     Category.Locks,
     "Block a set of entries until a timer runs out",
     [
-        new AddLockArgument("name"),
-        new TimeSpanArgument("time"),
-        new EntriesArgument("entries")
+        new AddLockArgument("name", "The name of the new lock"),
+        new TimeSpanArgument("time", "The duration of the lock (HH:MM[:SS])"),
+        new EntriesArgument("entries", "The entries to lock")
     ],
     [],
     AddLock
@@ -104,8 +129,8 @@ CommandSystem.Register(new Command(
     Category.Locks,
     "Edit the entries of a lock",
     [
-        new LockArgument("name"),
-        new EntriesArgument("entries")
+        new LockArgument("name", "The name of the lock to edit"),
+        new EntriesArgument("entries", "The new entries of the lock")
     ],
     [],
     EditLock,
@@ -125,8 +150,8 @@ CommandSystem.Register(new Command(
     Category.Locks,
     "Rename a lock",
     [
-        new LockArgument("old"),
-        new AddLockArgument("new")
+        new LockArgument("old", "The old name of the lock"),
+        new AddLockArgument("new", "The new name of the lock")
     ],
     [],
     RenameLock
@@ -136,15 +161,25 @@ CommandSystem.Register(new Command(
 // Schedules
 
 CommandSystem.Register(new Command(
+    ["schedule"],
+    Category.Schedules,
+    "Manage schedules",
+    [],
+    [],
+    () => {},
+    Executable: false
+));
+
+CommandSystem.Register(new Command(
     ["schedule", "add"],
     Category.Schedules,
     "Create a schedule to enable entries automatically",
     [
-        new AddScheduleArgument("name"),
-        new TimeArgument("start"),
-        new TimeArgument("end"),
-        new DaysArgument("days"),
-        new EntriesArgument("entries")
+        new AddScheduleArgument("name", "The name of the new schedule"),
+        new TimeArgument("start", "The start time for the schedule (HH:MM[:SS])"),
+        new TimeArgument("end", "The end time for the schedule (HH:MM[:SS])"),
+        new DaysArgument("days", "The days of the week to apply the schedule (MTWHFSU)"),
+        new EntriesArgument("entries", "The entries to be blocked by the schedule")
     ],
     [],
     AddSchedule
@@ -155,13 +190,13 @@ CommandSystem.Register(new Command(
     Category.Schedules,
     "Edit the properties of a schedule",
     [
-        new ScheduleArgument("name"),
-        new TimeArgument("start"),
-        new TimeArgument("end"),
-        new DaysArgument("days"),
-        new EntriesArgument("entries")
+        new ScheduleArgument("name", "The name of the schedule to edit"),
+        new TimeArgument("start", "The new start time for the schedule (HH:MM[:SS])"),
+        new TimeArgument("end", "The new end time for the schedule (HH:MM[:SS])"),
+        new DaysArgument("days", "The new days of the week to apply the schedule (MTWHFSU)"),
+        new EntriesArgument("entries", "The new entries to be blocked by the schedule")
     ],
-    [],
+    [new WarningTimeFlag()],
     EditSchedule,
     true,
     async (command, i) => {
@@ -184,7 +219,10 @@ CommandSystem.Register(new Command(
     ["schedule", "rename"],
     Category.Schedules,
     "Rename a schedule",
-    [new ScheduleArgument("old"), new AddScheduleArgument("new")],
+    [
+        new ScheduleArgument("old", "The old name of the schedule"),
+        new AddScheduleArgument("new", "The new name of the schedule")
+    ],
     [],
     RenameSchedule
 ));
@@ -193,7 +231,9 @@ CommandSystem.Register(new Command(
     ["schedule", "remove"],
     Category.Schedules,
     "Remove a schedule",
-    [new ScheduleArgument("name")],
+    [
+        new ScheduleArgument("name", "The name of the schedule to remove")
+    ],
     [],
     RemoveSchedule
 ));

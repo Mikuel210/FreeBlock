@@ -4,6 +4,8 @@ public static class CommandSystem
 {
 
     private static readonly List<Command> _commands = [];
+    public static List<Command> Commands => _commands;
+
     public static void Register(Command command) => _commands.Add(command);
 
     public static async Task Handle(string[] args)
@@ -14,26 +16,41 @@ public static class CommandSystem
 
         if (command == null)
         {
-            Console.WriteLine($"Command not found: freeblock {string.Join(" ", args)}");
+            Console.WriteLine($"Command not found: freeblock {string.Join(' ', args)}");
             Console.WriteLine("See: freeblock --help");
             return;
         }
 
-        // Validate arguments
         args = [.. args.Skip(command.Route.Length)];
-        var argsList = args.ToList();
 
-        if (command.Arguments.LastOrDefault()?.Params == true && argsList.Count > command.Arguments.Count)
+        // Find positional and flag tokens
+        int flagStart = Array.FindIndex(args, a => a.StartsWith('-'));
+        if (flagStart < command.Arguments.Count) flagStart = -1;
+
+        var positional = flagStart == -1 ? args : args[.. flagStart];
+        var flagTokens = flagStart == -1 ? [] : args[flagStart ..];
+
+        // Validate arguments
+        var positionalList = positional.ToList();
+
+        if (command.Arguments.LastOrDefault()?.Params == true && positionalList.Count > command.Arguments.Count)
         {
-            var lastArgument = string.Join(' ', argsList.Skip(command.Arguments.Count - 1));
-            argsList = [.. argsList.GetRange(0, command.Arguments.Count - 1), lastArgument];
+            var lastArgument = string.Join(' ', positionalList.Skip(command.Arguments.Count - 1));
+            positionalList = [.. positionalList.GetRange(0, command.Arguments.Count - 1), lastArgument];
         }
 
-        int i = await ValidateArguments(command, [.. argsList]);
+        // Trigger help
+        if ((!command.Executable && !command.IsRoot) || args.Any(e => e is "-?" or "-h" or "--help")) 
+        {
+            HelpSystem.ShowHelp(command);
+            return;
+        }
+
+        await ValidateArguments(command, [.. positionalList]);
 
         // Validate flags
         object?[] parameters = [.. command.Arguments];
-        var flags = await ValidateFlags(command, [.. argsList], i); // Run validation for every command to catch unexpected arguments
+        var flags = await ValidateFlags(command, [.. flagTokens]); // Run validation for every command to catch unexpected arguments
 
         if (command.Flags.Count > 0)
             parameters = [.. parameters, flags];
@@ -43,7 +60,7 @@ public static class CommandSystem
             await task;
     }
 
-    private static async Task<int> ValidateArguments(Command command, List<string> argsList) 
+    private static async Task ValidateArguments(Command command, List<string> argsList) 
     {
         bool hasRead = false;
         int i = 0;
@@ -94,37 +111,46 @@ public static class CommandSystem
             Continue:
             i++;
         }
-
-        return i;
     }
 
     private static Command? GetMatchingCommand(string[] args)
     {
+        List<Command> matches = [];
+
         foreach (var command in _commands)
         {
             if (args.Length < command.Route.Length) continue;
-            if (command.Route.Length == 0 && args.Length != 0) continue;
+            if (command.IsRoot && args.Length != 0) continue;
 
             for (int i = 0; i < command.Route.Length; i++)
                 if (command.Route[i] != args[i]) goto End;
 
-            return command;
+            matches.Add(command);
         End:;
         }
 
-        return null;
+        if (matches.Count == 0)
+        {
+            if (args[0].StartsWith('-'))
+                return _commands.Single(e => e.IsRoot);
+            
+            return null;
+        }
+
+        return matches.MaxBy(e => e.Route.Length);
     }
 
-    private static async Task<List<IFlag>> ValidateFlags(Command command, List<string> argsList, int i)
+    private static async Task<List<IFlag>> ValidateFlags(Command command, List<string> tokensList)
     {
         bool warnings = false;
         List<IFlag> flags = [];
+        int i = 0;
 
         while (true)
         {
-            if (i >= argsList.Count) break;
+            if (i >= tokensList.Count) break;
 
-            string token = argsList[i];
+            string token = tokensList[i];
             
             foreach (var flag in command.Flags)
             {
@@ -137,7 +163,7 @@ public static class CommandSystem
                 }
 
                 i++;
-                token = argsList[i];
+                token = tokensList[i];
                 
                 if (await flag.Validate(token))
                 {
@@ -147,7 +173,7 @@ public static class CommandSystem
             }
 
             // Unrecognized flag
-            ConsoleUtils.Warning($"Unexpected argument: {token}");
+            ConsoleUtils.Warning($"Unexpected {(token.StartsWith('-') ? "flag" : "argument")}: {token}");
             warnings = true;
 
             Continue:

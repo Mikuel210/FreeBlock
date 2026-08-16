@@ -7,13 +7,15 @@ namespace CLI;
 public interface IArgument
 {
     public string Name { get; }
+    public string Description { get; }
+
     public object? Value { get; }
     public bool Params { get; }
 
     public Task<bool> Validate(string input);
 }
 
-public abstract record Argument<T>(string Name, bool Params = false) : IArgument
+public abstract record Argument<T>(string Name, string Description, bool Params = false) : IArgument
 {
     public T? Value { get; protected set; }
     object? IArgument.Value => Value;
@@ -23,7 +25,7 @@ public abstract record Argument<T>(string Name, bool Params = false) : IArgument
 
 #region Arguments
 
-public record StringArgument(string Name) : Argument<string>(Name)
+public record StringArgument(string Name, string Description) : Argument<string>(Name, Description)
 {
     public override async Task<bool> Validate(string input)
     {
@@ -32,7 +34,7 @@ public record StringArgument(string Name) : Argument<string>(Name)
     }
 }
 
-public record EntriesArgument(string Name) : Argument<List<Entry>>(Name, true)
+public record EntriesArgument(string Name, string Description) : Argument<List<Entry>>(Name, Description, true)
 {
     public override async Task<bool> Validate(string input)
     {
@@ -63,7 +65,7 @@ public record EntriesArgument(string Name) : Argument<List<Entry>>(Name, true)
     }
 }
 
-public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IName
+public record INameArgument<T>(string Name, string Description) : Argument<T>(Name, Description) where T : IName
 {
     public override async Task<bool> Validate(string input)
     {
@@ -79,7 +81,7 @@ public record INameArgument<T>(string Name) : Argument<T>(Name) where T : IName
     }
 }
 
-public record AddINameArgument<T>(string Name) : Argument<string>(Name) where T : IName
+public record AddINameArgument<T>(string Name, string Description) : Argument<string>(Name, Description) where T : IName
 {
     public override async Task<bool> Validate(string input)
     {
@@ -107,14 +109,14 @@ public record AddINameArgument<T>(string Name) : Argument<string>(Name) where T 
 }
 
 // Lists
-public record ListArgument(string Name) : INameArgument<List>(Name);
-public record AddListArgument(string Name) : AddINameArgument<List>(Name);
+public record ListArgument(string Name, string Description) : INameArgument<List>(Name, Description);
+public record AddListArgument(string Name, string Description) : AddINameArgument<List>(Name, Description);
 
 // Locks
-public record LockArgument(string Name) : INameArgument<Lock>(Name);
-public record AddLockArgument(string Name) : AddINameArgument<Lock>(Name);
+public record LockArgument(string Name, string Description) : INameArgument<Lock>(Name, Description);
+public record AddLockArgument(string Name, string Description) : AddINameArgument<Lock>(Name, Description);
 
-public record TimeSpanArgument(string Name) : Argument<TimeSpan>(Name)
+public record TimeSpanArgument(string Name, string Description) : Argument<TimeSpan>(Name, Description)
 {
     public override async Task<bool> Validate(string input)
     {
@@ -122,7 +124,7 @@ public record TimeSpanArgument(string Name) : Argument<TimeSpan>(Name)
 
         if (!result)
         {
-            Console.WriteLine($"[{Name}] must be a valid timespan (HH:MM(:SS))");
+            Console.WriteLine($"[{Name}] must be a valid timespan (HH:MM[:SS])");
             return false;
         }
 
@@ -132,10 +134,10 @@ public record TimeSpanArgument(string Name) : Argument<TimeSpan>(Name)
 }
 
 // Schedules
-public record ScheduleArgument(string Name) : INameArgument<Schedule>(Name);
-public record AddScheduleArgument(string Name) : AddINameArgument<Schedule>(Name);
+public record ScheduleArgument(string Name, string Description) : INameArgument<Schedule>(Name, Description);
+public record AddScheduleArgument(string Name, string Description) : AddINameArgument<Schedule>(Name, Description);
 
-public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
+public record DaysArgument(string Name, string Description) : Argument<DayOfWeek[]>(Name, Description)
 {
     public override async Task<bool> Validate(string input)
     {
@@ -185,7 +187,7 @@ public record DaysArgument(string Name) : Argument<DayOfWeek[]>(Name)
     }
 }
 
-public record TimeArgument(string Name) : Argument<TimeOnly>(Name)
+public record TimeArgument(string Name, string Description) : Argument<TimeOnly>(Name, Description)
 {
     public override async Task<bool> Validate(string input)
     {
