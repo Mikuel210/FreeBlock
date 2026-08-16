@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
-using SDK;
-using Lock = SDK.Lock;
+using Core;
+using Lock = Core.Lock;
 
 namespace Daemon;
 

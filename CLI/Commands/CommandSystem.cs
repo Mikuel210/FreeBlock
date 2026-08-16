@@ -39,7 +39,7 @@ public static class CommandSystem
         }
 
         // Trigger usage
-        if (!command.Executable) 
+        if (!command.Executable && !command.IsRoot) 
         {
             HelpSystem.ShowUsage(command);
             return;

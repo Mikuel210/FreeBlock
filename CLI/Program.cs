@@ -10,8 +10,11 @@ CommandSystem.Register(new Command(
     Category.Blocking,
     "The FOSS website and app blocker",
     [],
-    [],
-    () => {},
+    [
+        new VersionFlag(),
+        new UninstallFlag()
+    ],
+    HandleRoot,
     Executable: false,
     IsRoot: true
 ));
@@ -196,7 +199,7 @@ CommandSystem.Register(new Command(
         new DaysArgument("days", "The new days of the week to apply the schedule (MTWHFSU)"),
         new EntriesArgument("entries", "The new entries to be blocked by the schedule")
     ],
-    [new WarningTimeFlag()],
+    [],
     EditSchedule,
     true,
     async (command, i) => {
@@ -246,42 +249,19 @@ await CommandSystem.Handle(args);
 
 // General
 
-void ShowUsage()
+Task HandleRoot(List<IFlag> flags)
 {
-    Console.WriteLine("""
-                      Usage: freeblock <command> [<args>]
-                      See: freeblock --help
-                      """);
-}
+    if (flags.Any(e => e.GetType() == typeof(VersionFlag)))
+    {
+        Console.WriteLine("v0.7.0");
+        return Task.CompletedTask;
+    }
 
-void ShowHelp()
-{
-    Console.WriteLine("""
-                      Usage: freeblock [-v | --version] [-h | --help] [--uninstall] <command> [<args>]
-                      Below is a list of all available commands.
+    if (flags.Any(e => e.GetType() == typeof(UninstallFlag)))
+        return Uninstall();
 
-                      Manage blocking:
-                        freeblock status           Show the current status of blocking, where green means active.
-                        freeblock block            Enable manual block for one or more entries.
-                        freeblock unblock          Disable manual block for one or more entries.
-
-                      Manage block lists:
-                        freeblock list add         Create a new block list from a set of entries.
-                        freeblock list edit        Edit the entries of a block list.
-                        freeblock list rename      Rename a block list.
-                        freeblock list remove      Remove a block list.
-
-                      Manage locks:
-                        freeblock lock add         Block one or more entries for the provided amount of time.
-                        freeblock lock edit        Edit the entries of a lock.
-                        freeblock lock rename      Rename a lock.
-
-                      Manage schedules:  
-                        freeblock schedule add     Create a new schedule to enable entries automatically.
-                        freeblock schedule edit    Edit the properties of a schedule.
-                        freeblock schedule rename  Rename a schedule.
-                        freeblock schedule remove  Remove a schedule.
-                      """);
+    HelpSystem.ShowUsage(CommandSystem.Commands.Single(e => e.IsRoot));
+    return Task.CompletedTask;
 }
 
 string[] GetBlockReasons(StateSnapshot state, Entry entry)

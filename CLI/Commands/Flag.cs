@@ -17,7 +17,7 @@ public abstract record SwitchFlag(string Description, string LongName, string? S
     public bool IsSwitch => true;
     public object? Value => null;
 
-    public abstract Task<bool> Validate(string input);
+    public async Task<bool> Validate(string input) => true;
 }
 
 public abstract record ValueFlag<T>(string Description, string LongName, string? ShortName = null) : IFlag
@@ -30,6 +30,10 @@ public abstract record ValueFlag<T>(string Description, string LongName, string?
 }
 
 #region Flags
+
+public record VersionFlag() : SwitchFlag("Show the FreeBlock version", "--version", "-v");
+
+public record UninstallFlag() : SwitchFlag("Uninstall FreeBlock", "--uninstall");
 
 public record WarningTimeFlag() : ValueFlag<TimeSpan>("The time before a schedule to be notified the schedule is about to start", "--warning-time")
 {
