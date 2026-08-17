@@ -7,30 +7,6 @@ namespace CLI;
 public static class ConsoleUtils
 {
 
-    public static bool PromptYesNo(string message, bool defaultValue = true, bool disableWriteLine = false)
-    {
-        bool writeLine = false;
-
-        while (true)
-        {
-            Console.Write($"{message} ({(defaultValue ? 'Y' : 'y')}/{(defaultValue ? 'n' : 'N')}): ");
-            var input = Console.ReadLine()!.Trim().ToLowerInvariant();
-
-            if (input is "y" or "yes" || (input == "" && defaultValue))
-            {
-                if (writeLine && !disableWriteLine) Console.WriteLine();
-                return true;
-            }
-
-            if (input is "n" or "no" || (input == "" && !defaultValue)) return false;
-
-            writeLine = true;
-        }
-    }
-
-    public static bool PromptClose(bool disableWriteLine = false) 
-        => PromptYesNo($"This will close all browsers and all blocked apps. Okay to continue?", true, disableWriteLine);
-
     public static async Task<(List<Entry>, string)> EditEntries(string defaultContents = "", string? list = null)
     {
         // Initialize file
@@ -121,6 +97,32 @@ public static class ConsoleUtils
         return Process.Start(startInfo);
     }
 
+    public static string[] GetBlockReasons(StateSnapshot state, Entry entry)
+    {
+        List<string> blockReasons = [];
+        if (state.Block.Contains(entry)) blockReasons.Add("manual");
+
+        foreach (var @lock in state.Locks)
+        {
+            if (@lock.Entries.Contains(entry))
+                blockReasons.Add($"🔒 {@lock.Name}");
+        }
+
+        foreach (var list in state.Lists.Where(e => e.IsActive(state)))
+        {
+            if (list.Entries.Contains(entry))
+                blockReasons.Add($"📋 {list.Name}");
+        }
+            
+        foreach (var schedule in state.Schedules.Where(e => e.Active))
+        {  
+            if (schedule.Entries.Contains(entry))
+                blockReasons.Add($"⏰ {schedule.Name}");
+        }
+
+        return [.. blockReasons];
+    }
+
     private static void TitledMessage(string title, string message, ConsoleColor color)
     {
         Console.ForegroundColor = color;
@@ -133,5 +135,29 @@ public static class ConsoleUtils
     public static void Note(string message) => TitledMessage("Note", message, ConsoleColor.Blue);
     public static void Warning(string message) => TitledMessage("Warning", message, ConsoleColor.Yellow);
     public static void Error(string message) => TitledMessage("Error", message, ConsoleColor.Red);
+
+    public static bool PromptYesNo(string message, bool defaultValue = true, bool disableWriteLine = false)
+    {
+        bool writeLine = false;
+
+        while (true)
+        {
+            Console.Write($"{message} ({(defaultValue ? 'Y' : 'y')}/{(defaultValue ? 'n' : 'N')}): ");
+            var input = Console.ReadLine()!.Trim().ToLowerInvariant();
+
+            if (input is "y" or "yes" || (input == "" && defaultValue))
+            {
+                if (writeLine && !disableWriteLine) Console.WriteLine();
+                return true;
+            }
+
+            if (input is "n" or "no" || (input == "" && !defaultValue)) return false;
+
+            writeLine = true;
+        }
+    }
+
+    public static bool PromptClose(bool disableWriteLine = false) 
+        => PromptYesNo($"This will close all browsers and all blocked apps. Okay to continue?", true, disableWriteLine);
 
 }

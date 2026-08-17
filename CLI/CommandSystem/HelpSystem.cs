@@ -111,7 +111,7 @@ public static class HelpSystem
                 name = $"{e.ShortName} | {name}";
 
             if (e.IsSwitch) return $"[{name}]";
-            string value = $"<{e.LongName[2 ..]}>";
+            string value = e.ValueName == null ? $"<{e.LongName[2 ..]}>" : $"<{e.ValueName}>";
 
             if (e.ShortName != null)
                 return $"[({name}) {value}]";

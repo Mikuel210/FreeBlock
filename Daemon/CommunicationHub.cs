@@ -112,6 +112,7 @@ public class CommunicationHub : Hub
     {
         var localLock = GetLocalLock(@lock);
         localLock.Entries = @lock.Entries;
+        localLock.UnlockTime = @lock.UnlockTime;
 
         await ApplyChanges();
     }

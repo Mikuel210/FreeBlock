@@ -91,10 +91,7 @@ public static class CommandSystem
 
             Read:
             string space = (argsList.Count == 0 || argsList[0] == string.Empty) ? "" : " ";
-            string defaultArg = command.GetDefault != null ? await command.GetDefault(command, i) : "";
-
-            Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} [{argument.Name}]"
-                + $"{(command.Edit && i != 0 ? $" ({defaultArg})" : "")}: ");
+            Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} [{argument.Name}]: ");
 
             var input = Console.ReadLine()!.Trim();
             hasRead = true;
@@ -102,14 +99,9 @@ public static class CommandSystem
             // Check empty argument
             if (input == string.Empty)
             {
-                if (!command.Edit || i == 0) 
-                {
-                    Console.WriteLine($"[{argument.Name}] can't be empty");
-                    Console.WriteLine();
-                    goto Read;
-                }
-
-                input = defaultArg;
+                Console.WriteLine($"[{argument.Name}] can't be empty");
+                Console.WriteLine();
+                goto Read;
             }
 
             // Add argument to array
@@ -150,8 +142,8 @@ public static class CommandSystem
 
     private static async Task<List<IFlag>> ValidateFlags(Command command, List<string> tokensList)
     {
-        bool warnings = false;
         List<IFlag> flags = [];
+        bool warnings = false;
         int i = 0;
 
         while (true)
@@ -164,20 +156,55 @@ public static class CommandSystem
             {
                 if (token != flag.LongName && token != flag.ShortName) continue;
 
+                // Switch flags
                 if (flag.IsSwitch)
                 {
                     flags.Add(flag);
                     goto Continue;
                 }
 
+                // Value flags
                 i++;
-                token = tokensList[i];
-                
-                if (await flag.Validate(token))
+
+                if (i >= tokensList.Count || tokensList[i].StartsWith('-'))
                 {
+                    Console.WriteLine($"[{flag.LongName}] can't be empty");
+                    goto Continue;
+                }
+
+                token = tokensList[i];
+
+                // Single value
+                if (!flag.Params)
+                {
+                    if (!await flag.Validate(token)) goto Continue;
+
                     flags.Add(flag);
                     goto Continue;
                 }
+
+                // Multiple values
+                List<string> tokens = [];
+
+                while (true)
+                {
+                    if (token.StartsWith('-')) 
+                    {
+                        i--;
+                        break;
+                    }
+
+                    tokens.Add(token);
+                    i++;
+
+                    if (i >= tokensList.Count) break;
+                    token = tokensList[i];
+                }
+
+                if (!await flag.Validate(string.Join(' ', tokens))) goto Continue;
+
+                flags.Add(flag);
+                goto Continue;
             }
 
             // Unrecognized flag

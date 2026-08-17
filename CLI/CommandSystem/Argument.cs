@@ -165,7 +165,7 @@ public record DaysArgument(string Name, string Description) : Argument<DayOfWeek
         {
             if (!"mtwhfsu".Contains(day))
             {
-                Console.WriteLine($"[{Name}] must be days of the week: MTWHFSU/weekdays/weekends/everyday");
+                Console.WriteLine($"[{Name}] must be days of the week: MTWHFSU | weekdays | weekends | everyday");
                 return false;
             }
 
