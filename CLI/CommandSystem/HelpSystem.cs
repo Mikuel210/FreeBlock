@@ -20,7 +20,7 @@ public static class HelpSystem
             }
         }
 
-        if (command.Flags.Count > 0)
+        if (command.Flags.Count > 0 && !command.IsRoot)
         {
             Console.WriteLine("\nFlags:");
 
@@ -72,6 +72,7 @@ public static class HelpSystem
                         Category.Lists => "Manage lists:",
                         Category.Locks => "Manage locks:",
                         Category.Schedules => "Manage schedules:",
+                        Category.Configuration => "Configure FreeBlock:",
                         _ => throw new NotImplementedException()
                     });
                 }
@@ -95,10 +96,10 @@ public static class HelpSystem
     {
         if (command.IsRoot)
         {
-            if (includeFlags)
-                return "freeblock [-v | --version] [-h | --help] [--uninstall] <command> [<args>]";
+            if (!includeFlags)
+                return "freeblock <command> [<args>]";
             
-            return "freeblock <command> [<args>]";
+            return "freeblock [-v | --version] [-h | --help] [--uninstall] <command> [<args>]";
         }
 
         string arguments = string.Join(' ', command.Arguments.Select(e => $"<{e.Name}>"));
@@ -111,7 +112,9 @@ public static class HelpSystem
                 name = $"{e.ShortName} | {name}";
 
             if (e.IsSwitch) return $"[{name}]";
+            
             string value = e.ValueName == null ? $"<{e.LongName[2 ..]}>" : $"<{e.ValueName}>";
+            if (e.Params) value += "...";
 
             if (e.ShortName != null)
                 return $"[({name}) {value}]";

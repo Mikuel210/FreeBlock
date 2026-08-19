@@ -4,7 +4,7 @@ public class Schedule : IAgent<ScheduleOptions>
 {
 
     public string Name { get; set; } = string.Empty;
-    public ScheduleOptions Options { get; } = new();
+    public ScheduleOptions Options { get; set; } = new();
 
     // Properties
     public List<Entry> Entries { get; set; } = [];
@@ -16,6 +16,7 @@ public class Schedule : IAgent<ScheduleOptions>
     public DateTime? RemovalRequestTime { get; set; }
 
     // Active
+    public bool InWarningPeriod => !Active && IsActive(StartTime.Add(-Options.WarningTime), EndTime, Days);
     public bool Active => IsActive(StartTime, EndTime, Days);
 
     public static bool IsActive(TimeOnly startTime, TimeOnly endTime, DayOfWeek[] days)

@@ -179,4 +179,6 @@ public record ScheduleDaysFlag() : DaysFlag("Change the days of the week to appl
 
 public record ScheduleEntriesFlag() : EntriesFlag("Change the entries of the schedule", "--entries", "-e");
 
+public record ScheduleWarningTimeFlag() : TimeSpanFlag("Change the warning period before the schedule starts (HH:MM[:SS])", "--warning-time", "-w");
+
 #endregion

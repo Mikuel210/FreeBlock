@@ -1,4 +1,6 @@
-﻿namespace CLI;
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace CLI;
 
 public static class CommandSystem
 {
@@ -58,10 +60,12 @@ public static class CommandSystem
 
         // Validate flags
         object?[] parameters = [.. command.Arguments];
-        var flags = await ValidateFlags(command, [.. flagTokens]); // Run validation for every command to catch unexpected arguments
-
+        
         if (command.Flags.Count > 0)
+        {
+            var flags = await ValidateFlags(command, [.. flagTokens]);
             parameters = [.. parameters, flags];
+        }
 
         // Run command
         if (command.Run.DynamicInvoke(parameters) is Task task)
@@ -111,6 +115,12 @@ public static class CommandSystem
             Continue:
             i++;
         }
+
+        if (argsList.Count <= command.Arguments.Count) return;
+
+        argsList = [.. argsList.Skip(command.Arguments.Count)];
+        argsList.ForEach(e => ConsoleUtils.Warning($"Unexpected argument: {e}"));
+        Console.WriteLine();
     }
 
     private static Command? GetMatchingCommand(string[] args)
@@ -207,8 +217,8 @@ public static class CommandSystem
                 goto Continue;
             }
 
-            // Unrecognized flag
-            ConsoleUtils.Warning($"Unexpected {(token.StartsWith('-') ? "flag" : "argument")}: {token}");
+            // Unknown flag
+            ConsoleUtils.Warning($"Unknown flag: {token}");
             warnings = true;
 
             Continue:

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
 using Core;
 using Lock = Core.Lock;
+using System.Text.Json;
+using System.Reflection;
 
 namespace Daemon;
 
@@ -160,6 +162,24 @@ public class CommunicationHub : Hub
         localSchedule.RemovalRequestTime = DateTime.Now;
 
         State.Save();
+    }
+
+
+    // Config
+
+    public async Task<object?> GetConfig(string key)
+    {
+        var type = typeof(Config.DefaultValue).GetField(key)!.FieldType;
+        return Config.Get(key, type!);
+    }
+
+    public async Task SetConfig(string key, JsonElement value) 
+    {
+        var type = typeof(Config.DefaultValue).GetField(key)!.FieldType;
+        var typedValue = value.Deserialize(type);
+
+        Config.Set(key, typedValue!);
+        Config.Save();
     }
 
 

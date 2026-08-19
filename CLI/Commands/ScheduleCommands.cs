@@ -6,6 +6,23 @@ namespace CLI;
 public static class ScheduleCommands
 {
 
+    public static async Task ShowStatus()
+    {
+        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+
+        if (state.Schedules.Count == 0)
+        {
+            Console.WriteLine("No schedules found");
+            return;
+        }
+
+        foreach (var schedule in state.Schedules)
+        {
+            string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {schedule.Days.GetDaysString()})";
+            Console.WriteLine($"⏰{(schedule.Active ? "🟢" : "🔴")} {schedule.Name} {timeString}");
+        }
+    }
+
     public static async Task AddSchedule(AddScheduleArgument name, TimeArgument start, TimeArgument end, DaysArgument days, EntriesArgument entriesArgument)
     {
         var entries = entriesArgument.Value!;
@@ -16,7 +33,10 @@ public static class ScheduleCommands
             Entries = entries,
             StartTime = start.Value,
             EndTime = end.Value,
-            Days = days.Value!
+            Days = days.Value!,
+            Options = {
+                WarningTime = TimeSpan.FromMinutes(15)
+            }
         };
 
         if (schedule.Active && !ConsoleUtils.PromptClose()) return;
@@ -87,6 +107,25 @@ public static class ScheduleCommands
             changesMade = true;
         }
 
+        if (flags.OfType<ScheduleWarningTimeFlag>().FirstOrDefault() is { } warningTimeFlag)
+        {
+            var newTime = warningTimeFlag.Value!;
+            bool inWarningPeriod = schedule.InWarningPeriod;
+
+            if (newTime < schedule.Options.WarningTime && (schedule.Active || inWarningPeriod))
+            {
+                if (inWarningPeriod) ConsoleUtils.Warning("Decreasing the warning time while in the warning period is not allowed");
+                else ConsoleUtils.Warning("Decreasing the warning time while the schedule is active is not allowed");
+
+                showedWarnings = true;
+            }
+            else
+            {
+                schedule.Options.WarningTime = newTime;
+                changesMade = true;
+            }
+        }
+
         if (flags.OfType<ScheduleEntriesFlag>().FirstOrDefault() is { } entriesFlag)
         {
             // Revert removed entries
@@ -154,8 +193,9 @@ public static class ScheduleCommands
     public static async Task RemoveSchedule(ScheduleArgument argument)
     {
         var schedule = argument.Value!;
+        bool inWarningPeriod = schedule.InWarningPeriod;
 
-        if (schedule.Active)
+        if (schedule.Active || inWarningPeriod)
         {
             var now = DateTime.Now;
             bool inWindow = false;
@@ -173,7 +213,9 @@ public static class ScheduleCommands
             // Can request removal
             if (!inWindow && !requested) 
             {
-                ConsoleUtils.Error($"Removing schedules while they're active is not allowed: {schedule.Name}");
+                if (!inWarningPeriod) ConsoleUtils.Error($"Removing schedules while they're active is not allowed: {schedule.Name}");
+                else ConsoleUtils.Error($"Removing schedules while in the warning period is not allowed: {schedule.Name}");
+
                 Console.WriteLine();
 
                 if (ConsoleUtils.PromptYesNo("To prevent impulsive choices, you can instead request the ability to remove this schedule in a "
@@ -189,7 +231,8 @@ public static class ScheduleCommands
             // Requested
             if (!inWindow && requested) 
             {
-                ConsoleUtils.Error($"Removing schedules while they're active is not allowed: {schedule.Name}");
+                if (!inWarningPeriod) ConsoleUtils.Error($"Removing schedules while they're active is not allowed: {schedule.Name}");
+                else ConsoleUtils.Error($"Removing schedules while in the warning period is not allowed: {schedule.Name}");
 
                 var windowStart = ((DateTime)schedule.RemovalRequestTime!).AddDays(1);
                 ConsoleUtils.Note($"The removal of this schedule is already requested. The window starts {windowStart}");

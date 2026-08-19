@@ -135,4 +135,20 @@ public static class Extensions
         return daysString;
     }
 
+    public static string ToNaturalLanguage(this TimeSpan timeSpan)
+    {
+        List<string> parts = [];
+
+        if (timeSpan.Hours > 0) 
+            parts.Add($"{timeSpan.Hours} {(timeSpan.Hours == 1 ? "hour" : "hours")}");
+
+        if (timeSpan.Minutes > 0) 
+            parts.Add($"{timeSpan.Minutes} {(timeSpan.Minutes == 1 ? "minute" : "minutes")}");
+
+        if (timeSpan.Seconds > 0) 
+            parts.Add($"{timeSpan.Seconds} {(timeSpan.Seconds == 1 ? "second" : "seconds")}");
+
+        return string.Join(", ", parts);
+    }
+
 }

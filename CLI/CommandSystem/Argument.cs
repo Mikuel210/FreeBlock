@@ -204,4 +204,59 @@ public record TimeArgument(string Name, string Description) : Argument<TimeOnly>
     }
 }
 
+// Configuration
+public record ConfigKeyArgument(string Name, string Description) : Argument<string>(Name, Description)
+{
+    public override async Task<bool> Validate(string input)
+    {
+        if (ConfigSystem.Keys.Contains(input))
+        {
+            Value = input;
+            return true;
+        }
+
+        Console.WriteLine($"[{Name}] must be a valid configuration key");
+        return false;
+    }
+}
+
+public record ConfigValueArgument(string Name, string Description, ConfigKeyArgument KeyArgument) : Argument<object?>(Name, Description)
+{
+    public override async Task<bool> Validate(string input)
+    {
+        var argument = ConfigSystem.GetArgument(KeyArgument.Value!);
+
+        if (await argument.Validate(input))
+        {
+            Value = argument.Value;
+            return true;
+        }
+
+        return false;
+    }
+}
+
+public record BoolArgument(string Name, string Description) : Argument<bool>(Name, Description)
+{
+    public override async Task<bool> Validate(string input)
+    {
+        input = input.ToLowerInvariant();
+
+        if (input is "true" or "1")
+        {
+            Value = true;
+            return true;
+        }
+
+        if (input is "false" or "0")
+        {
+            Value = false;
+            return true;
+        }
+
+        Console.WriteLine($"[{Name}] must be a boolean (true | false)");
+        return false;
+    }
+}
+
 #endregion

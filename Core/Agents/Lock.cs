@@ -4,7 +4,7 @@ public class Lock(string name, List<Entry> entries, DateTime unlockTime) : IAgen
 {
 
     public string Name { get; set; } = name;
-    public AgentOptions Options { get; } = new();
+    public AgentOptions Options { get; set; } = new();
 
     public List<Entry> Entries { get; set; } = entries;
     public DateTime UnlockTime { get; set; } = unlockTime;

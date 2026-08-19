@@ -1,4 +1,8 @@
 ﻿using CLI;
+using Daemon;
+using Microsoft.AspNetCore.SignalR.Client;
+
+#region Commands
 
 // General
 
@@ -57,6 +61,15 @@ CommandSystem.Register(new Command(
 ));
 
 CommandSystem.Register(new Command(
+    Route: ["list", "status"],
+    Category: Category.Lists,
+    Description: "Show the current status of block lists",
+    Arguments: [],
+    Flags: [],
+    Run: ListCommands.ShowStatus
+));
+
+CommandSystem.Register(new Command(
     Route: ["list", "add"],
     Category: Category.Lists,
     Description: "Create a new block list from a set of entries",
@@ -109,6 +122,15 @@ CommandSystem.Register(new Command(
 ));
 
 CommandSystem.Register(new Command(
+    Route: ["lock", "status"],
+    Category: Category.Locks,
+    Description: "Show the current status of locks",
+    Arguments: [],
+    Flags: [],
+    Run: LockCommands.ShowStatus
+));
+
+CommandSystem.Register(new Command(
     Route: ["lock", "add"],
     Category: Category.Locks,
     Description: "Block a set of entries until a timer runs out",
@@ -124,7 +146,7 @@ CommandSystem.Register(new Command(
 CommandSystem.Register(new Command(
     Route: ["lock", "edit"],
     Category: Category.Locks,
-    Description: "Edit the entries of a lock",
+    Description: "Edit the properties of a lock",
     Arguments: [new LockArgument("name", "The name of the lock to edit")],
     Flags: [
         new LockAddEntriesFlag(), 
@@ -159,6 +181,15 @@ CommandSystem.Register(new Command(
 ));
 
 CommandSystem.Register(new Command(
+    Route: ["schedule", "status"],
+    Category: Category.Schedules,
+    Description: "Show the current status of schedules",
+    Arguments: [],
+    Flags: [],
+    Run: ScheduleCommands.ShowStatus
+));
+
+CommandSystem.Register(new Command(
     Route: ["schedule", "add"],
     Category: Category.Schedules,
     Description: "Create a schedule to enable entries automatically",
@@ -182,7 +213,8 @@ CommandSystem.Register(new Command(
         new ScheduleStartTimeFlag(),
         new ScheduleEndTimeFlag(),
         new ScheduleDaysFlag(),
-        new ScheduleEntriesFlag()
+        new ScheduleEntriesFlag(),
+        new ScheduleWarningTimeFlag()
     ],
     Run: ScheduleCommands.EditSchedule
 ));
@@ -207,5 +239,65 @@ CommandSystem.Register(new Command(
     Flags: [],
     Run: ScheduleCommands.RemoveSchedule
 ));
+
+
+// Configuration
+
+CommandSystem.Register(new Command(
+    Route: ["config", "get"],
+    Category: Category.Configuration,
+    Description: "Get the value of a configuration option",
+    Arguments: [new ConfigKeyArgument("key", "The key of the option to get")],
+    Flags: [],
+    Run: ConfigCommands.Get
+));
+
+
+var setKeyArgument = new ConfigKeyArgument("key", "The key of the option to set");
+
+CommandSystem.Register(new Command(
+    Route: ["config", "set"],
+    Category: Category.Configuration,
+    Description: "Get the value of a configuration option",
+    Arguments: [
+        setKeyArgument,
+        new ConfigValueArgument("value", "The value to set to the option", setKeyArgument)
+    ],
+    Flags: [],
+    Run: ConfigCommands.Set
+));
+
+#endregion
+
+#region Configuration
+
+ConfigSystem.Register(
+    "schedule.defaultWarningTime",
+    new ConfigOption(
+        nameof(Config.DefaultValue.defaultWarningTime),
+        "The default warning time for new schedules",
+        () => new TimeSpanArgument("value", string.Empty)
+    )
+);
+
+ConfigSystem.Register(
+    "status.showAllLists",
+    new ConfigOption(
+        nameof(Config.DefaultValue.showAllLists),
+        "Whether to show all lists in status or just active ones",
+        () => new BoolArgument("value", string.Empty)
+    )
+);
+
+ConfigSystem.Register(
+    "status.showAllSchedules",
+    new ConfigOption(
+        nameof(Config.DefaultValue.showAllSchedules),
+        "Whether to show all schedules in status or just active ones",
+        () => new BoolArgument("value", string.Empty)
+    )
+);
+
+#endregion
 
 await CommandSystem.Handle(args);

@@ -5,7 +5,8 @@ public enum Category
     Blocking,
     Lists,
     Locks,
-    Schedules
+    Schedules,
+    Configuration
 }
 
 public record Command(string[] Route, Category Category, string Description, List<IArgument> Arguments,

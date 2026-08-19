@@ -6,6 +6,27 @@ namespace CLI;
 public static class ListCommands
 {
 
+    public static async Task ShowStatus()
+    {
+        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var lists = state.Lists.ToArray();
+
+        if (lists.Length == 0)
+        {
+            Console.WriteLine("No lists found");
+            return;
+        }
+
+        foreach (var list in lists)
+        {
+            Entry entry = new(EntryType.List, list.Name);
+            string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
+
+            string reasonsString = blockReasons.Length == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
+            Console.WriteLine($"📋{(blockReasons.Length > 0 ? "🟢" : "🔴")} {list.Name}{reasonsString}");
+        }
+    }
+
     public static async Task AddList(AddListArgument argument)
     {
         var list = new List { Name = argument.Value! };

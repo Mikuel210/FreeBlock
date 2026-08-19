@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq.Expressions;
 using Core;
 
 namespace Daemon;
@@ -59,21 +60,28 @@ public static class Blocker
         }
 
         // Write new URLs
-        using StreamWriter file = new(Platform.HostsPath);
-        file.WriteLine(Config.Get<string>(nameof(Config.DefaultValue.hosts)));
-
-        file.WriteLine("\n# FreeBlock blocked URLs");
-        file.WriteLine($"{REDIRECT} use-application-dns.net");
-
-        foreach (string url in blockedWebsites)
+        try 
         {
-            file.WriteLine($"{REDIRECT} {url}");
-            file.WriteLine($"{REDIRECT} www.{url}");
-        }
+            using StreamWriter file = new(Platform.HostsPath);
+            file.WriteLine(Config.Get<string>(nameof(Config.DefaultValue.hosts)));
 
-        // Flush DNS
-        _ = Platform.FlushDns.Run();
-        _previousWebsites = blockedWebsites;
+            file.WriteLine("\n# FreeBlock blocked URLs");
+            file.WriteLine($"{REDIRECT} use-application-dns.net");
+
+            foreach (string url in blockedWebsites)
+            {
+                file.WriteLine($"{REDIRECT} {url}");
+                file.WriteLine($"{REDIRECT} www.{url}");
+            }
+
+            // Flush DNS
+            _ = Platform.FlushDns.Run();
+            _previousWebsites = blockedWebsites;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error when writing to hosts file: {e}");
+        }
     }
 
     public static void CloseBrowsers()
@@ -108,9 +116,17 @@ public static class Blocker
             "Zen", "zen.exe", "zen-browser", "zen"
         ];
 
-        Process.GetProcesses()
-            .Where(e => browsers.Contains(e.ProcessName))
-            .ToList().ForEach(e => e.Kill());
+        foreach (var process in Process.GetProcesses().Where(e => browsers.Contains(e.ProcessName)))
+        {
+            try
+            {
+                process.Kill();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error when killing process {process.ProcessName}: {e}");
+            }
+        }
     }
 
     public static void CloseApps()

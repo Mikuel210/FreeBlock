@@ -28,18 +28,26 @@ public static class GeneralCommands
         var entries = state.Block
             .Concat(state.Locks.SelectMany(e => e.Entries))
             .Concat(state.Schedules.Where(e => e.Active).SelectMany(e => e.Entries))
-            .Where(e => e.Type != EntryType.List)
             .Distinct()
             .OrderBy(e => e.Type)
             .ToArray();
 
-        if (entries.Length == 0 && state.Lists.Count == 0 && state.Locks.Count == 0 && state.Schedules.Count == 0)
+        var lists = state.Lists.Where(e => e.IsActive(state)).ToArray();
+        var schedules = state.Schedules.Where(e => e.Active).ToArray();
+
+        bool showBlockedEntries = entries.Length > 0 || lists.Length > 0;
+        bool showLocks = state.Locks.Count > 0;
+        bool showSchedules = schedules.Length > 0;
+
+        if (!showBlockedEntries && !showLocks && !showSchedules)
         {
             Console.WriteLine("No blocking is taking place");
             return;
         }
 
-        // Entries
+        // Blocked entries
+        if (showBlockedEntries) Console.WriteLine("Active entries:");
+
         foreach (var entry in entries)
         {
             string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
@@ -49,8 +57,7 @@ public static class GeneralCommands
             Console.WriteLine($"{typeIcon}🟢 {entry.Name}{reasonsString}");
         }
 
-        // Lists
-        foreach (var list in state.Lists)
+        foreach (var list in lists)
         {
             Entry entry = new(EntryType.List, list.Name);
             string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
@@ -59,14 +66,18 @@ public static class GeneralCommands
             Console.WriteLine($"📋{(blockReasons.Length > 0 ? "🟢" : "🔴")} {list.Name}{reasonsString}");
         }
 
+        if (showBlockedEntries && (showLocks || showSchedules)) Console.WriteLine();
+
         // Locks
-        foreach (var @lock in state.Locks)
-        {
-            Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
-        }
+        if (showLocks) Console.WriteLine("Active locks:");
+        foreach (var @lock in state.Locks) Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
+
+        if (showLocks && showSchedules) Console.WriteLine();
 
         // Schedules
-        foreach (var schedule in state.Schedules)
+        if (showSchedules) Console.WriteLine("Active schedules:");
+
+        foreach (var schedule in schedules)
         {
             string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {schedule.Days.GetDaysString()})";
             Console.WriteLine($"⏰{(schedule.Active ? "🟢" : "🔴")} {schedule.Name} {timeString}");

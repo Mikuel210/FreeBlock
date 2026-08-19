@@ -7,6 +7,20 @@ namespace CLI;
 public static class LockCommands
 {
 
+    public static async Task ShowStatus()
+    {
+        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var locks = state.Locks.ToArray();
+
+        if (locks.Length == 0)
+        {
+            Console.WriteLine("No locks found");
+            return;
+        }
+
+        foreach (var @lock in locks) Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
+    }
+
     public static async Task AddLock(AddLockArgument nameArgument, TimeSpanArgument timeArgument, EntriesArgument entriesArgument)
     {
         var time = timeArgument.Value!;
@@ -23,7 +37,7 @@ public static class LockCommands
     public static async Task EditLock(LockArgument lockArgument, List<IFlag> flags)
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
-        
+
         var @lock = lockArgument.Value!;
         bool changesMade = false;
 

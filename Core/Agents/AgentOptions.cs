@@ -1,6 +1,4 @@
 namespace Core;
 
-public class AgentOptions 
-{
-
-}
+[Serializable]
+public class AgentOptions;
