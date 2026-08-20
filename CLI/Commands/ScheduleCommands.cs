@@ -89,31 +89,44 @@ public static class ScheduleCommands
         var entries = schedule.Entries;
         var options = schedule.Options;
 
+        bool activeOrWarning = schedule.Active || schedule.InWarningPeriod;
         bool changesMade = false;
         bool showedWarnings = false;
         bool revertTime = false;
 
         if (flags.OfType<ScheduleStartTimeFlag>().FirstOrDefault() is { } startTimeFlag)
         {
-            bool revertStart = schedule.Active && startTimeFlag.Value > schedule.StartTime;
+            bool revertStart = activeOrWarning && startTimeFlag.Value > schedule.StartTime;
             if (!revertStart) start = startTimeFlag.Value!;
 
             revertTime = revertStart;
-            changesMade = true;
+            changesMade = !revertStart;
         }
 
         if (flags.OfType<ScheduleEndTimeFlag>().FirstOrDefault() is { } endTimeFlag)
         {
-            bool revertEnd = schedule.Active && endTimeFlag.Value < schedule.EndTime;
+            bool revertEnd = activeOrWarning && endTimeFlag.Value < schedule.EndTime;
             if (!revertEnd) end = endTimeFlag.Value!;
 
             revertTime = revertTime || revertEnd;
-            changesMade = true;
+            changesMade = changesMade || !revertEnd;
+        }
+
+        if (revertTime) 
+        {
+            if (schedule.Active)
+                ConsoleUtils.Warning("Making a schedule shorter while it's active is not allowed and changes have been reverted");
+            if (schedule.InWarningPeriod)
+                ConsoleUtils.Warning("Making a schedule shorter while in the warning period is not allowed and changes have been reverted");
+
+            showedWarnings = true;
         }
 
         if (flags.OfType<ScheduleDaysFlag>().FirstOrDefault() is { } daysFlag)
         {
-            if (!schedule.Active)
+            var previousDays = days.ToList();
+
+            if (!activeOrWarning)
             {
                 days = [.. daysFlag.Value!];
                 goto End;
@@ -130,35 +143,41 @@ public static class ScheduleCommands
             {
                 if (daysFlag.Value!.Contains(day)) continue;
 
-                ConsoleUtils.Warning($"Removing days of the week while a schedule is active is not allowed and they have been added back");
-                showedWarnings = true;
+                if (schedule.Active)
+                    ConsoleUtils.Warning($"Removing days of the week while a schedule is active is not allowed and they have been added back");
+                if (schedule.InWarningPeriod)
+                    ConsoleUtils.Warning($"Removing days of the week while in the warning period is not allowed and they have been added back");
 
+                showedWarnings = true;
                 break;
             }
 
             End:
             days.Sort();
-            changesMade = true;
+            changesMade = changesMade || days != previousDays;
         }
 
         if (flags.OfType<ScheduleWarningTimeFlag>().FirstOrDefault() is { } warningTimeFlag)
         {
             var newTime = warningTimeFlag.Value!;
-            bool inWarningPeriod = schedule.InWarningPeriod;
 
-            if (newTime < options.WarningTime && (schedule.Active || inWarningPeriod))
+            if (newTime < options.WarningTime && activeOrWarning)
             {
-                if (inWarningPeriod) ConsoleUtils.Warning("Decreasing the warning time while in the warning period is not allowed");
-                else ConsoleUtils.Warning("Decreasing the warning time while the schedule is active is not allowed");
+                if (schedule.Active)
+                    ConsoleUtils.Warning("Decreasing the warning time while the schedule is active is not allowed");
+                if (schedule.InWarningPeriod) 
+                    ConsoleUtils.Warning("Decreasing the warning time while in the warning period is not allowed");
 
                 showedWarnings = true;
             }
             else
             {
+                changesMade = changesMade || options.WarningTime != newTime;
                 options.WarningTime = newTime;
-                changesMade = true;
             }
         }
+
+        if (showedWarnings) Console.WriteLine();
 
         if (flags.OfType<ScheduleEntriesFlag>().FirstOrDefault() is { } entriesFlag)
         {
@@ -167,7 +186,6 @@ public static class ScheduleCommands
             entries = entriesFlag.Value!;
             
             bool active = Schedule.IsActive(start, end, [.. days]);
-            bool previousActive = schedule.Active;
 
             if (active) 
             {
@@ -181,21 +199,20 @@ public static class ScheduleCommands
                     showWarning = true;
                 }
 
-                if (showWarning) ConsoleUtils.Warning("Removing entries while the schedule is active is not allowed and they have been added back");
+                if (showWarning) 
+                {
+                    if (schedule.Active)
+                        ConsoleUtils.Warning("Removing entries while the schedule is active is not allowed and they have been added back");
+                    if (schedule.InWarningPeriod)
+                        ConsoleUtils.Warning("Removing entries while in the warning period is not allowed and they have been added back");
+                }
+
                 showedWarnings = showedWarnings || showWarning;
             }
             
             // Prompt close
-            if (showedWarnings) Console.WriteLine();
             if (active && !entries.All(e => e.IsActive(state)) && !ConsoleUtils.PromptClose(true)) return;
-
-            changesMade = true;
-        }
-
-        if (revertTime) 
-        {
-            ConsoleUtils.Warning("Making a schedule shorter while it's active is not allowed and changes have been reverted");
-            showedWarnings = true;
+            changesMade = changesMade || !entries.SequenceEqual(previousEntries);
         }
 
         // Update schedule

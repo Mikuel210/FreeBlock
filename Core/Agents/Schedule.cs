@@ -26,7 +26,7 @@ public class Schedule : IAgent<ScheduleOptions>
 
         // Check day
         if (endTime >= startTime || now.TimeOfDay >= startTime.ToTimeSpan()) isDay = days.Contains(now.DayOfWeek);
-        else isDay = days.Contains(now.AddDays(1).DayOfWeek);
+        else isDay = days.Contains(now.AddDays(-1).DayOfWeek);
 
         // Check time
         bool afterStartTime = now.TimeOfDay >= startTime.ToTimeSpan();
