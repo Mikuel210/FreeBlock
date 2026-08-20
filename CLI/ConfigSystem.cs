@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Daemon;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace CLI;
@@ -14,8 +15,13 @@ public static class ConfigSystem
     public static void Register(string key, ConfigOption configOption)
         => _options.Add(key, configOption);
 
-    public static Task<object?> Get(string key) 
-        => ConnectionManager.Connection!.InvokeAsync<object?>("GetConfig", _options[key].FieldName);
+    public static async Task<object?> Get(string key) 
+    {
+        var jsonElement = await ConnectionManager.Connection!.InvokeAsync<JsonElement>("GetConfig", _options[key].FieldName);
+        var type = typeof(Config.DefaultValue).GetField(_options[key].FieldName)!.FieldType;
+
+        return jsonElement.Deserialize(type);
+    }
 
     public static async Task<T> Get<T>(string key) 
     {
