@@ -62,7 +62,7 @@ public static class ScheduleCommands
 
         if (flags.OfType<ScheduleStartTimeFlag>().FirstOrDefault() is { } startTimeFlag)
         {
-            bool revertStart = schedule.Active && start > schedule.StartTime;
+            bool revertStart = schedule.Active && startTimeFlag.Value > schedule.StartTime;
             if (!revertStart) start = startTimeFlag.Value!;
 
             revertTime = revertStart;
@@ -71,7 +71,7 @@ public static class ScheduleCommands
 
         if (flags.OfType<ScheduleEndTimeFlag>().FirstOrDefault() is { } endTimeFlag)
         {
-            bool revertEnd = schedule.Active && end < schedule.EndTime;
+            bool revertEnd = schedule.Active && endTimeFlag.Value < schedule.EndTime;
             if (!revertEnd) end = endTimeFlag.Value!;
 
             revertTime = revertTime || revertEnd;
