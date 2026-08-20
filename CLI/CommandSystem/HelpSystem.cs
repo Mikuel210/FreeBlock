@@ -82,6 +82,21 @@ public static class HelpSystem
                 Console.WriteLine($"  {name}{spaceString}{subcommand.Description}");
             }
         }
+
+        if (command.Category == Category.Configuration)
+        {
+            Console.WriteLine("\nOptions:");
+
+            var options = ConfigSystem.Options;
+            int spaces = options.Keys.Max(e => e.Length) + 3;
+
+            foreach (var option in options)
+            {
+                string name = option.Key;
+                string spaceString = new(' ', spaces - name.Length);
+                Console.WriteLine($"  {name}{spaceString}{option.Value.Description}");
+            }
+        }
     }
 
     public static void ShowUsage(Command command)

@@ -244,6 +244,25 @@ CommandSystem.Register(new Command(
 // Configuration
 
 CommandSystem.Register(new Command(
+    Route: ["config"],
+    Category: Category.Configuration,
+    Description: "Configure FreeBlock",
+    Arguments: [],
+    Flags: [],
+    Run: () => {},
+    Executable: false
+));
+
+CommandSystem.Register(new Command(
+    Route: ["config", "status"],
+    Category: Category.Configuration,
+    Description: "List all configuration options and their values",
+    Arguments: [],
+    Flags: [],
+    Run: ConfigCommands.ShowStatus
+));
+
+CommandSystem.Register(new Command(
     Route: ["config", "get"],
     Category: Category.Configuration,
     Description: "Get the value of a configuration option",

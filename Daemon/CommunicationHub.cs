@@ -173,6 +173,16 @@ public class CommunicationHub : Hub
         return Config.Get(key, type!);
     }
 
+    public async Task<Dictionary<string, object?>> GetBatchConfig(string[] keys)
+    {
+        Dictionary<string, object?> output = [];
+
+        foreach (var key in keys)
+            output.Add(key, await GetConfig(key));
+
+        return output;
+    }
+
     public async Task SetConfig(string key, JsonElement value) 
     {
         var type = typeof(Config.DefaultValue).GetField(key)!.FieldType;

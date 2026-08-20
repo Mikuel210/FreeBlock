@@ -183,7 +183,7 @@ public static class GeneralCommands
             {
                 if (!list.Entries.Contains(entry)) continue;
                 var listEntry = new Entry(EntryType.List, list.Name);
-
+                
                 ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a list: {list.Name}"); // TODO: check if you're unblocking that list as well
                 writeLine = true;
             }

@@ -209,9 +209,12 @@ public record ConfigKeyArgument(string Name, string Description) : Argument<stri
 {
     public override async Task<bool> Validate(string input)
     {
-        if (ConfigSystem.Keys.Contains(input))
+        var keys = ConfigSystem.Options.Keys;
+        var keysLower = keys.Select(e => e.ToLowerInvariant());
+
+        if (keysLower.Contains(input.ToLowerInvariant()))
         {
-            Value = input;
+            Value = keys.Single(e => e.ToLowerInvariant() == input.ToLowerInvariant());
             return true;
         }
 

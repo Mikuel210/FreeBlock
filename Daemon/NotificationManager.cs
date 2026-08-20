@@ -9,7 +9,6 @@ public static class NotificationManager
     {
         foreach (var schedule in State.Schedules)
         {
-            Console.WriteLine(schedule.Options.WarningTime);
             var startTime = schedule.StartTime.Add(-schedule.Options.WarningTime);
             var endTime = startTime.Add(TimeSpan.FromSeconds(1));
 
