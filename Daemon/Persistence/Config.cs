@@ -15,6 +15,7 @@ public static class Config
         // Status options
         public bool showAllSchedules = false;
         public bool showAllLists = false;
+        public bool showWarningPeriodSchedules = true;
     }
 
     private static readonly JsonFile _file = new(Platform.ConfigFile, new DefaultValue());

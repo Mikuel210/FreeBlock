@@ -167,28 +167,28 @@ public class CommunicationHub : Hub
 
     // Config
 
-    public async Task<object?> GetConfig(string key)
+    public async Task<object?> GetConfig(string fieldName)
     {
-        var type = typeof(Config.DefaultValue).GetField(key)!.FieldType;
-        return Config.Get(key, type!);
+        var type = typeof(Config.DefaultValue).GetField(fieldName)!.FieldType;
+        return Config.Get(fieldName, type!);
     }
 
-    public async Task<Dictionary<string, object?>> GetBatchConfig(string[] keys)
+    public async Task<Dictionary<string, object?>> GetBatchConfig(string[] fieldName)
     {
         Dictionary<string, object?> output = [];
 
-        foreach (var key in keys)
+        foreach (var key in fieldName)
             output.Add(key, await GetConfig(key));
 
         return output;
     }
 
-    public async Task SetConfig(string key, JsonElement value) 
+    public async Task SetConfig(string fieldName, JsonElement value) 
     {
-        var type = typeof(Config.DefaultValue).GetField(key)!.FieldType;
+        var type = typeof(Config.DefaultValue).GetField(fieldName)!.FieldType;
         var typedValue = value.Deserialize(type);
 
-        Config.Set(key, typedValue!);
+        Config.Set(fieldName, typedValue!);
         Config.Save();
     }
 

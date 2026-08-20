@@ -19,7 +19,8 @@ public static class ScheduleCommands
         foreach (var schedule in state.Schedules)
         {
             string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {schedule.Days.GetDaysString()})";
-            Console.WriteLine($"⏰{(schedule.Active ? "🟢" : "🔴")} {schedule.Name} {timeString}");
+            string icon = schedule.Active ? "🟢" : (schedule.InWarningPeriod ? "🟠" : "🔴");
+            Console.WriteLine($"⏰{icon} {schedule.Name} {timeString}");
         }
     }
 
@@ -35,7 +36,7 @@ public static class ScheduleCommands
             EndTime = end.Value,
             Days = days.Value!,
             Options = {
-                WarningTime = TimeSpan.FromMinutes(15)
+                WarningTime = await ConfigSystem.Get<TimeSpan>("schedule.defaultWarningTime")
             }
         };
 

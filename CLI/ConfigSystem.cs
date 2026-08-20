@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace CLI;
@@ -15,6 +16,12 @@ public static class ConfigSystem
 
     public static Task<object?> Get(string key) 
         => ConnectionManager.Connection!.InvokeAsync<object?>("GetConfig", _options[key].FieldName);
+
+    public static async Task<T> Get<T>(string key) 
+    {
+        var jsonElement = await ConnectionManager.Connection!.InvokeAsync<JsonElement>("GetConfig", _options[key].FieldName);
+        return jsonElement.Deserialize<T>()!;
+    }
 
     public static async Task<Dictionary<string, object?>> GetAll()
     {

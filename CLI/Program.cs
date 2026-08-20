@@ -317,6 +317,15 @@ ConfigSystem.Register(
     )
 );
 
+ConfigSystem.Register(
+    "status.showWarningPeriodSchedules",
+    new ConfigOption(
+        nameof(Config.DefaultValue.showWarningPeriodSchedules),
+        "Whether to show schedules in warning period, in case status.showAllSchedules is false",
+        () => new BoolArgument("value", string.Empty)
+    )
+);
+
 #endregion
 
 await CommandSystem.Handle(args);

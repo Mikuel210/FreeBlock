@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Core;
+using System.Timers;
 
 namespace CLI;
 
@@ -23,8 +24,13 @@ public static class GeneralCommands
 
     public static async Task ShowStatus()
     {
+        // Get state and configuration
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        bool showAllLists = await ConfigSystem.Get<bool>("status.showAllLists");
+        bool showAllSchedules = await ConfigSystem.Get<bool>("status.showAllSchedules");
+        bool showWarningSchedules = await ConfigSystem.Get<bool>("status.showWarningPeriodSchedules");
 
+        // Get blocked entries, lists and schedules
         var entries = state.Block
             .Concat(state.Locks.SelectMany(e => e.Entries))
             .Concat(state.Schedules.Where(e => e.Active).SelectMany(e => e.Entries))
@@ -32,29 +38,55 @@ public static class GeneralCommands
             .OrderBy(e => e.Type)
             .ToArray();
 
-        var lists = state.Lists.Where(e => e.IsActive(state)).ToArray();
-        var schedules = state.Schedules.Where(e => e.Active).ToArray();
+        if (showAllLists) entries = [.. entries.Where(e => e.Type != EntryType.List)];
 
-        bool showBlockedEntries = entries.Length > 0 || lists.Length > 0;
+        var lists = state.Lists.ToArray();
+        if (!showAllLists) lists = [];
+
+        var schedules = state.Schedules.ToArray();
+        if (!showAllSchedules && showWarningSchedules)  schedules = [.. schedules.Where(e => e.Active || e.InWarningPeriod)];
+        if (!showAllSchedules && !showWarningSchedules) schedules = [.. schedules.Where(e => e.Active)];
+
+        // Sections
+        bool showActiveEntries = entries.Length > 0;
+        bool showLists = showAllLists && lists.Length > 0;
         bool showLocks = state.Locks.Count > 0;
         bool showSchedules = schedules.Length > 0;
+        bool printedSection = false;
 
-        if (!showBlockedEntries && !showLocks && !showSchedules)
+        if (!showActiveEntries && !showLocks && !showSchedules)
         {
             Console.WriteLine("No blocking is taking place");
             return;
         }
 
         // Blocked entries
-        if (showBlockedEntries) Console.WriteLine("Active entries:");
+        if (showActiveEntries) 
+        {
+            Console.WriteLine("Active entries:");
+            printedSection = true;
+        }
 
         foreach (var entry in entries)
         {
             string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
-
             string reasonsString = blockReasons.Length == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
-            string typeIcon = entry.Type == EntryType.Website ? "🌐" : "💻";
+
+            string typeIcon = entry.Type switch  {
+                EntryType.Website => "🌐",
+                EntryType.App => "💻",
+                _ => "📋"
+            };
+
             Console.WriteLine($"{typeIcon}🟢 {entry.Name}{reasonsString}");
+        }
+
+        if (showLists) 
+        {
+            if (printedSection) Console.WriteLine();
+
+            Console.WriteLine("Block lists:");
+            printedSection = true;
         }
 
         foreach (var list in lists)
@@ -66,21 +98,31 @@ public static class GeneralCommands
             Console.WriteLine($"📋{(blockReasons.Length > 0 ? "🟢" : "🔴")} {list.Name}{reasonsString}");
         }
 
-        if (showBlockedEntries && (showLocks || showSchedules)) Console.WriteLine();
-
         // Locks
-        if (showLocks) Console.WriteLine("Active locks:");
+        if (showLocks) 
+        {
+            if (printedSection) Console.WriteLine();
+
+            Console.WriteLine("Active locks:");
+            printedSection = true;
+        }
+
         foreach (var @lock in state.Locks) Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
 
-        if (showLocks && showSchedules) Console.WriteLine();
-
         // Schedules
-        if (showSchedules) Console.WriteLine("Active schedules:");
+        if (showSchedules) 
+        {
+            if (printedSection) Console.WriteLine();
+
+            Console.WriteLine(showAllSchedules ? "Schedules:" : "Active schedules:");
+            printedSection = true;
+        }
 
         foreach (var schedule in schedules)
         {
             string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {schedule.Days.GetDaysString()})";
-            Console.WriteLine($"⏰{(schedule.Active ? "🟢" : "🔴")} {schedule.Name} {timeString}");
+            string icon = schedule.Active ? "🟢" : (schedule.InWarningPeriod ? "🟠" : "🔴");
+            Console.WriteLine($"⏰{icon} {schedule.Name} {timeString}");
         }
     }
 
