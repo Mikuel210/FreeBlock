@@ -21,6 +21,25 @@ public static class LockCommands
         foreach (var @lock in locks) Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
     }
 
+    public static async Task ShowLock(LockArgument argument)
+    {
+        var @lock = argument.Value!;
+
+        Dictionary<string, object?> values = new() {
+            { "Name", @lock.Name },
+            { "Unlock time", @lock.UnlockTime },
+            { "Entries", string.Join(", ", @lock.Entries.Select(e => e.ToEntryString())) }
+        };
+
+        int spaces = values.Keys.Max(e => e.Length) + 3;
+
+        foreach (var value in values)
+        {
+            var spaceString = new string(' ', spaces - value.Key.Length);
+            Console.WriteLine($"{value.Key}{spaceString}{value.Value}");
+        }
+    }
+
     public static async Task AddLock(AddLockArgument nameArgument, TimeSpanArgument timeArgument, EntriesArgument entriesArgument)
     {
         var time = timeArgument.Value!;

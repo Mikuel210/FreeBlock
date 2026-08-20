@@ -79,6 +79,15 @@ CommandSystem.Register(new Command(
 ));
 
 CommandSystem.Register(new Command(
+    Route: ["list", "show"],
+    Category: Category.Lists,
+    Description: "Show the contents of a block list",
+    Arguments: [new ListArgument("name", "The name of the list to show")],
+    Flags: [],
+    Run: ListCommands.ShowList
+));
+
+CommandSystem.Register(new Command(
     Route: ["list", "edit"],
     Category: Category.Lists,
     Description: "Edit the entries of a block list",
@@ -133,7 +142,7 @@ CommandSystem.Register(new Command(
 CommandSystem.Register(new Command(
     Route: ["lock", "add"],
     Category: Category.Locks,
-    Description: "Block a set of entries until a timer runs out",
+    Description: "Create a lock to block entries until a timer runs out",
     Arguments: [
         new AddLockArgument("name", "The name of the new lock"),
         new TimeSpanArgument("time", "The duration of the lock (HH:MM[:SS])"),
@@ -141,6 +150,15 @@ CommandSystem.Register(new Command(
     ],
     Flags: [],
     Run: LockCommands.AddLock
+));
+
+CommandSystem.Register(new Command(
+    Route: ["lock", "show"],
+    Category: Category.Locks,
+    Description: "Show the properties of a lock",
+    Arguments: [new LockArgument("name", "The name of the lock to show")],
+    Flags: [],
+    Run: LockCommands.ShowLock
 ));
 
 CommandSystem.Register(new Command(
@@ -202,6 +220,15 @@ CommandSystem.Register(new Command(
     ],
     Flags: [],
     Run: ScheduleCommands.AddSchedule
+));
+
+CommandSystem.Register(new Command(
+    Route: ["schedule", "show"],
+    Category: Category.Schedules,
+    Description: "Show the properties of a schedule",
+    Arguments: [new ScheduleArgument("name", "The name of the schedule to show")],
+    Flags: [],
+    Run: ScheduleCommands.ShowSchedule
 ));
 
 CommandSystem.Register(new Command(
@@ -277,7 +304,7 @@ var setKeyArgument = new ConfigKeyArgument("key", "The key of the option to set"
 CommandSystem.Register(new Command(
     Route: ["config", "set"],
     Category: Category.Configuration,
-    Description: "Get the value of a configuration option",
+    Description: "Set the value of a configuration option",
     Arguments: [
         setKeyArgument,
         new ConfigValueArgument("value", "The value to set to the option", setKeyArgument)

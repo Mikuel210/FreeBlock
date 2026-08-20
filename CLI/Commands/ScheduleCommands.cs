@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Core;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
 
 namespace CLI;
 
@@ -9,18 +10,48 @@ public static class ScheduleCommands
     public static async Task ShowStatus()
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        List<Schedule> schedules = [.. state.Schedules];
 
-        if (state.Schedules.Count == 0)
+        if (schedules.Count == 0)
         {
             Console.WriteLine("No schedules found");
             return;
         }
 
-        foreach (var schedule in state.Schedules)
+        schedules.Sort((a, b) => {
+            int aPriority = a.Active ? 0 : (a.InWarningPeriod ? 1 : 2);
+            int bPriority = b.Active ? 0 : (b.InWarningPeriod ? 1 : 2);
+            return aPriority.CompareTo(bPriority);
+        });
+
+        foreach (var schedule in schedules)
         {
             string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {schedule.Days.GetDaysString()})";
             string icon = schedule.Active ? "🟢" : (schedule.InWarningPeriod ? "🟠" : "🔴");
             Console.WriteLine($"⏰{icon} {schedule.Name} {timeString}");
+        }
+    }
+
+    public static async Task ShowSchedule(ScheduleArgument argument)
+    {
+        var schedule = argument.Value!;
+        var state = schedule.Active ? "Active" : (schedule.InWarningPeriod ? "Warning" : "Inactive");
+
+        Dictionary<string, object?> values = new() {
+            { "Name", schedule.Name },
+            { "Start time", schedule.StartTime },
+            { "End time", schedule.EndTime },
+            { "Days", schedule.Days.GetDaysString() },
+            { "Entries", string.Join(", ", schedule.Entries.Select(e => e.ToEntryString())) },
+            { "State", state }
+        };
+
+        int spaces = values.Keys.Max(e => e.Length) + 3;
+
+        foreach (var value in values)
+        {
+            var spaceString = new string(' ', spaces - value.Key.Length);
+            Console.WriteLine($"{value.Key}{spaceString}{value.Value}");
         }
     }
 

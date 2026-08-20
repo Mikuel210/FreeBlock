@@ -87,6 +87,8 @@ public static class GeneralCommands
 
             Console.WriteLine("Block lists:");
             printedSection = true;
+
+            lists.Sort((a, b) => b.IsActive(state).CompareTo(a.IsActive(state)));
         }
 
         foreach (var list in lists)
@@ -116,6 +118,12 @@ public static class GeneralCommands
 
             Console.WriteLine(showAllSchedules ? "Schedules:" : "Active schedules:");
             printedSection = true;
+
+            schedules.Sort((a, b) => {
+                int aPriority = a.Active ? 0 : (a.InWarningPeriod ? 1 : 2);
+                int bPriority = b.Active ? 0 : (b.InWarningPeriod ? 1 : 2);
+                return aPriority.CompareTo(bPriority);
+            });
         }
 
         foreach (var schedule in schedules)

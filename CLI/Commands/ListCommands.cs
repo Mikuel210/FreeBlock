@@ -17,6 +17,8 @@ public static class ListCommands
             return;
         }
 
+        lists.Sort((a, b) => b.IsActive(state).CompareTo(a.IsActive(state)));
+
         foreach (var list in lists)
         {
             Entry entry = new(EntryType.List, list.Name);
@@ -26,6 +28,9 @@ public static class ListCommands
             Console.WriteLine($"📋{(blockReasons.Length > 0 ? "🟢" : "🔴")} {list.Name}{reasonsString}");
         }
     }
+
+    public static async Task ShowList(ListArgument argument)
+        => Console.WriteLine(await ConnectionManager.Connection!.InvokeAsync<string>("GetListContentsAsync", argument.Value!));
 
     public static async Task AddList(AddListArgument argument)
     {
