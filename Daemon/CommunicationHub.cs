@@ -136,6 +136,7 @@ public class CommunicationHub : Hub
         localSchedule.StartTime = schedule.StartTime;
         localSchedule.EndTime = schedule.EndTime;
         localSchedule.Days = schedule.Days;
+        localSchedule.Options = schedule.Options;
 
         await ApplyChanges();
     }

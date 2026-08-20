@@ -55,6 +55,7 @@ public static class ScheduleCommands
         var end = schedule.EndTime;
         var days = schedule.Days.ToList();
         var entries = schedule.Entries;
+        var options = schedule.Options;
 
         bool changesMade = false;
         bool showedWarnings = false;
@@ -113,7 +114,7 @@ public static class ScheduleCommands
             var newTime = warningTimeFlag.Value!;
             bool inWarningPeriod = schedule.InWarningPeriod;
 
-            if (newTime < schedule.Options.WarningTime && (schedule.Active || inWarningPeriod))
+            if (newTime < options.WarningTime && (schedule.Active || inWarningPeriod))
             {
                 if (inWarningPeriod) ConsoleUtils.Warning("Decreasing the warning time while in the warning period is not allowed");
                 else ConsoleUtils.Warning("Decreasing the warning time while the schedule is active is not allowed");
@@ -122,7 +123,7 @@ public static class ScheduleCommands
             }
             else
             {
-                schedule.Options.WarningTime = newTime;
+                options.WarningTime = newTime;
                 changesMade = true;
             }
         }
@@ -172,7 +173,8 @@ public static class ScheduleCommands
             Entries = entries,
             StartTime = start,
             EndTime = end,
-            Days = [.. days]
+            Days = [.. days],
+            Options = options
         };
 
         await ConnectionManager.Connection!.InvokeAsync("EditScheduleAsync", updatedSchedule);
