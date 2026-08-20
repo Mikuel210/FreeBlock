@@ -1,6 +1,7 @@
 ![FreeBlock Tutorial](Images/tutorial.png)
 
-> Last update: v0.6.0
+> [!NOTE]
+> This tutorial was last updated in v0.6. A new version will be coming soon.
 
 ## Navigation
 

@@ -128,6 +128,12 @@ public record TimeSpanArgument(string Name, string Description) : Argument<TimeS
             return false;
         }
 
+        if (value < TimeSpan.Zero)
+        {
+            Console.WriteLine($"[{Name}] must be a positive timespan");
+            return false;
+        }
+
         Value = value;
         return true;
     }

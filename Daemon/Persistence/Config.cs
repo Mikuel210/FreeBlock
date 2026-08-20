@@ -7,6 +7,7 @@ public static class Config
 
     public struct DefaultValue()
     {
+        public string version = string.Empty;
         public string hosts = string.Empty;
 
         // Schedule options
@@ -22,16 +23,19 @@ public static class Config
 
     public static void Initialize()
     {
-        if (!string.IsNullOrEmpty(Get<string>(nameof(DefaultValue.hosts)))) return;
-        
-        try 
+        Set(nameof(DefaultValue.version), "v0.7.0");
+
+        if (string.IsNullOrEmpty(Get<string>(nameof(DefaultValue.hosts))))
         {
-            Set(nameof(DefaultValue.hosts), File.ReadAllText(Platform.HostsPath));
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error when reading hosts file: {e}");
-            Set(nameof(DefaultValue.hosts), string.Empty);
+            try 
+            {
+                Set(nameof(DefaultValue.hosts), File.ReadAllText(Platform.HostsPath));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error when reading hosts file: {e}");
+                Set(nameof(DefaultValue.hosts), string.Empty);
+            }
         }
         
         Save();

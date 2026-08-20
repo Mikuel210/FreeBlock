@@ -43,6 +43,7 @@ public static class ScheduleCommands
             { "End time", schedule.EndTime },
             { "Days", schedule.Days.GetDaysString() },
             { "Entries", string.Join(", ", schedule.Entries.Select(e => e.ToEntryString())) },
+            { "Warning time", schedule.Options.WarningTime },
             { "State", state }
         };
 
