@@ -11,19 +11,30 @@ public class JsonFile
 
     public JsonFile(string path, object defaultValues)
     {
-        // Create file if missing
         _path = path;
 
         if (!Path.Exists(path))
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             using StreamWriter file = File.CreateText(path);
-
             file.Write(JsonConvert.SerializeObject(defaultValues));
         }
 
-        // Load values
         _values = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(path))!;
+
+        // Backfill any keys the on-disk file predates (e.g. an older version's config)
+        var defaults = JObject.FromObject(defaultValues);
+        bool changed = false;
+
+        foreach (var prop in defaults.Properties())
+        {
+            if (_values.ContainsKey(prop.Name)) continue;
+            
+            _values[prop.Name] = prop.Value;
+            changed = true;
+        }
+
+        if (changed) Save();
     }
 
     public object? Get(string key, Type type) => _values.SelectToken(key)?.ToObject(type);

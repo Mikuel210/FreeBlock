@@ -17,16 +17,30 @@ public static class ConfigSystem
 
     public static async Task<object?> Get(string key) 
     {
-        var jsonElement = await ConnectionManager.Connection!.InvokeAsync<JsonElement>("GetConfig", _options[key].FieldName);
-        var type = typeof(Config.DefaultValue).GetField(_options[key].FieldName)!.FieldType;
+        try 
+        {
+            var jsonElement = await ConnectionManager.Connection!.InvokeAsync<JsonElement>("GetConfig", _options[key].FieldName);
+            var type = typeof(Config.DefaultValue).GetField(_options[key].FieldName)!.FieldType;
 
-        return jsonElement.Deserialize(type);
+            return jsonElement.Deserialize(type);
+        }
+        catch
+        {
+            return default;
+        }
     }
 
-    public static async Task<T> Get<T>(string key) 
+    public static async Task<T?> Get<T>(string key) 
     {
-        var jsonElement = await ConnectionManager.Connection!.InvokeAsync<JsonElement>("GetConfig", _options[key].FieldName);
-        return jsonElement.Deserialize<T>()!;
+        try 
+        {
+            var jsonElement = await ConnectionManager.Connection!.InvokeAsync<JsonElement>("GetConfig", _options[key].FieldName);
+            return jsonElement.Deserialize<T>();
+        }
+        catch
+        {
+            return default;
+        }
     }
 
     public static async Task<Dictionary<string, object?>> GetAll()
