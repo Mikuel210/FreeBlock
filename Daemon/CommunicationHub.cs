@@ -31,7 +31,7 @@ public class CommunicationHub : Hub
     public async Task AddListAsync(List list, string contents)
     {
         WriteFile(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"), contents);
-        
+
         State.Lists.Add(list);
         State.Save();
     }
@@ -79,9 +79,9 @@ public class CommunicationHub : Hub
                     lines[i] = $"@{newName}";
             }
 
-            WriteFile(path, string.Join('\n', path));
+            WriteFile(path, string.Join('\n', lines));
         }
-        
+
         // Change name
         var localList = GetLocalList(list);
         localList.Name = newName;
@@ -101,7 +101,7 @@ public class CommunicationHub : Hub
 
     public Task<string> GetListContentsAsync(List list)
         => File.ReadAllTextAsync(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
-    
+
     // Locks
 
     public async Task AddLockAsync(Lock @lock)
@@ -119,7 +119,15 @@ public class CommunicationHub : Hub
         await ApplyChanges();
     }
 
-    
+    public async Task RenameLockAsync(Lock @lock, string newName)
+    {
+        var localLock = GetLocalLock(@lock);
+        localLock.Name = newName;
+
+        State.Save();
+    }
+
+
     // Schedules
 
     public async Task AddScheduleAsync(Schedule schedule)
@@ -131,7 +139,7 @@ public class CommunicationHub : Hub
     public async Task EditScheduleAsync(Schedule schedule)
     {
         var localSchedule = GetLocalSchedule(schedule);
-        
+
         localSchedule.Entries = schedule.Entries;
         localSchedule.StartTime = schedule.StartTime;
         localSchedule.EndTime = schedule.EndTime;
@@ -184,7 +192,7 @@ public class CommunicationHub : Hub
         return output;
     }
 
-    public async Task SetConfig(string fieldName, JsonElement value) 
+    public async Task SetConfig(string fieldName, JsonElement value)
     {
         var type = typeof(Config.DefaultValue).GetField(fieldName)!.FieldType;
         var typedValue = value.Deserialize(type);
@@ -196,11 +204,11 @@ public class CommunicationHub : Hub
 
     // Uninstall
 
-    public async Task UninstallAsync() 
+    public async Task UninstallAsync()
     {
         File.WriteAllText(Platform.HostsPath, Config.Get<string>(nameof(Config.DefaultValue.hosts)));
         await Platform.Uninstall.Run();
-    } 
+    }
 
     public async Task RemovePreferencesAsync() => await Platform.RemovePreferences.Run();
 

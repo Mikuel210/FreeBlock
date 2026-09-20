@@ -1,4 +1,4 @@
-﻿using System.Data;
+﻿using Core;
 
 namespace Daemon;
 
@@ -23,11 +23,11 @@ public static class Config
 
     public static void Initialize()
     {
-        Set(nameof(DefaultValue.version), "v0.7.0");
+        Set(nameof(DefaultValue.version), Core.Globals.VERSION);
 
         if (string.IsNullOrEmpty(Get<string>(nameof(DefaultValue.hosts))))
         {
-            try 
+            try
             {
                 Set(nameof(DefaultValue.hosts), File.ReadAllText(Platform.HostsPath));
             }
@@ -37,7 +37,7 @@ public static class Config
                 Set(nameof(DefaultValue.hosts), string.Empty);
             }
         }
-        
+
         Save();
     }
 

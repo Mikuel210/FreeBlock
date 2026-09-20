@@ -48,7 +48,7 @@ public static class Blocker
 
         // Skip if no changes detected
         var blockedWebsites = BlockedEntries.Where(e => e.Type == EntryType.Website).Select(e => e.Name).ToArray();
-        if (blockedWebsites == _previousWebsites) return;
+        if (blockedWebsites.SequenceEqual(_previousWebsites)) return;
 
         // Close browsers if necessary
         foreach (string entry in blockedWebsites)
@@ -60,7 +60,7 @@ public static class Blocker
         }
 
         // Write new URLs
-        try 
+        try
         {
             using StreamWriter file = new(Platform.HostsPath);
             file.WriteLine(Config.Get<string>(nameof(Config.DefaultValue.hosts)));
@@ -133,7 +133,7 @@ public static class Blocker
     {
         var blockedApps = BlockedEntries.Where(e => e.Type == EntryType.App).Select(e => e.Name).ToArray();
         var apps = Process.GetProcesses().Where(e => blockedApps.Contains(e.ProcessName)).ToList();
-        
+
         if (apps.Count == 0) return;
         apps.ForEach(e => e.Kill());
 

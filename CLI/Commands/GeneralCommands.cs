@@ -11,7 +11,7 @@ public static class GeneralCommands
     {
         if (flags.Any(e => e.GetType() == typeof(VersionFlag)))
         {
-            Console.WriteLine("v0.7.0");
+            Console.WriteLine(Globals.VERSION);
             return Task.CompletedTask;
         }
 
@@ -61,7 +61,7 @@ public static class GeneralCommands
         }
 
         // Blocked entries
-        if (showActiveEntries) 
+        if (showActiveEntries)
         {
             Console.WriteLine("Active entries:");
             printedSection = true;
@@ -81,7 +81,7 @@ public static class GeneralCommands
             Console.WriteLine($"{typeIcon}🟢 {entry.Name}{reasonsString}");
         }
 
-        if (showLists) 
+        if (showLists)
         {
             if (printedSection) Console.WriteLine();
 
@@ -101,7 +101,7 @@ public static class GeneralCommands
         }
 
         // Locks
-        if (showLocks) 
+        if (showLocks)
         {
             if (printedSection) Console.WriteLine();
 
@@ -112,7 +112,7 @@ public static class GeneralCommands
         foreach (var @lock in state.Locks) Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
 
         // Schedules
-        if (showSchedules) 
+        if (showSchedules)
         {
             if (printedSection) Console.WriteLine();
 
@@ -134,11 +134,11 @@ public static class GeneralCommands
         }
     }
 
-    public static async Task Uninstall() 
+    public static async Task Uninstall()
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
-        
-        if (state.Block.Count > 0 || 
+
+        if (state.Block.Count > 0 ||
             state.Locks.SelectMany(e => e.Entries).Count() > 0 ||
             state.Schedules.Where(e => e.Active).SelectMany(e => e.Entries).Count() > 0)
         {
@@ -152,7 +152,7 @@ public static class GeneralCommands
             return;
         }
 
-        if (ConsoleUtils.PromptYesNo("Remove user data and preferences?", false)) 
+        if (ConsoleUtils.PromptYesNo("Remove user data and preferences?", false))
             await ConnectionManager.Connection!.InvokeAsync("RemovePreferencesAsync");
 
         await ConnectionManager.Connection!.InvokeAsync("UninstallAsync");
@@ -207,7 +207,7 @@ public static class GeneralCommands
         if (writeLine) Console.WriteLine();
         if (!allAlreadyActive && !ConsoleUtils.PromptClose()) return;
         await ConnectionManager.Connection!.InvokeAsync("BlockAsync", entries);
-        
+
         if (entries.Count == 1) Console.WriteLine($"Enabled manual block for entry: {entries[0].ToEntryString()}");
         else Console.WriteLine($"Enabled manual block for entries");
     }
@@ -233,7 +233,7 @@ public static class GeneralCommands
             {
                 if (!list.Entries.Contains(entry)) continue;
                 var listEntry = new Entry(EntryType.List, list.Name);
-                
+
                 ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a list: {list.Name}"); // TODO: check if you're unblocking that list as well
                 writeLine = true;
             }
