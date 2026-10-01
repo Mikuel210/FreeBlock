@@ -18,7 +18,9 @@ public static class LockCommands
             return 0;
         }
 
-        foreach (var @lock in locks) Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
+        foreach (var @lock in locks)
+            @lock.PrintStatus();
+
         return 0;
     }
 
@@ -32,14 +34,7 @@ public static class LockCommands
             { "Entries", string.Join(", ", @lock.Entries.Select(e => e.ToEntryString())) }
         };
 
-        int spaces = values.Keys.Max(e => e.Length) + 3;
-
-        foreach (var value in values)
-        {
-            var spaceString = new string(' ', spaces - value.Key.Length);
-            Console.WriteLine($"{value.Key}{spaceString}{value.Value}");
-        }
-
+        ConsoleUtils.PrintDictionary(values);
         return 0;
     }
 

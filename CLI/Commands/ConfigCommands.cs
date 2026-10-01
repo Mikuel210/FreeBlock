@@ -6,13 +6,7 @@ public static class ConfigCommands
     public static async Task<int> ShowStatus()
     {
         var options = await ConfigSystem.GetAll();
-        int spaces = options.Select(e => e.Key).Max(e => e.Length) + 3;
-
-        foreach (var option in options)
-        {
-            var spaceString = new string(' ', spaces - option.Key.Length);
-            Console.WriteLine($"{option.Key}{spaceString}{option.Value}");
-        }
+        ConsoleUtils.PrintDictionary(options);
 
         return 0;
     }

@@ -84,4 +84,11 @@ public class Schedule : IAgent<ScheduleOptions>
     public static bool IsActive(TimeOnly startTime, TimeOnly endTime, DayOfWeek[] days)
         => IsActive(startTime, endTime, days, DateTime.Now);
 
+    public void PrintStatus()
+    {
+        string timeString = $"({StartTime} - {EndTime}, {Days.GetDaysString()})";
+        string icon = Active ? "🟢" : (InWarningPeriod ? "🟠" : "🔴");
+        Console.WriteLine($"⏰{icon} {Name} {timeString}");
+    }
+
 }

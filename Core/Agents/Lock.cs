@@ -9,4 +9,7 @@ public class Lock(string name, List<Entry> entries, DateTime unlockTime) : IAgen
     public List<Entry> Entries { get; set; } = entries;
     public DateTime UnlockTime { get; set; } = unlockTime;
 
+    public void PrintStatus()
+        => Console.WriteLine($"🔒🟢 {Name} ({UnlockTime})");
+
 }

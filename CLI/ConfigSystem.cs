@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
 using Core;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace CLI;
 

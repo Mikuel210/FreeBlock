@@ -25,11 +25,7 @@ public static class ScheduleCommands
         });
 
         foreach (var schedule in schedules)
-        {
-            string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {schedule.Days.GetDaysString()})";
-            string icon = schedule.Active ? "🟢" : (schedule.InWarningPeriod ? "🟠" : "🔴");
-            Console.WriteLine($"⏰{icon} {schedule.Name} {timeString}");
-        }
+            schedule.PrintStatus();
 
         return 0;
     }
@@ -53,14 +49,7 @@ public static class ScheduleCommands
             { "Removal window", removal}
         };
 
-        int spaces = values.Keys.Max(e => e.Length) + 3;
-
-        foreach (var value in values)
-        {
-            var spaceString = new string(' ', spaces - value.Key.Length);
-            Console.WriteLine($"{value.Key}{spaceString}{value.Value}");
-        }
-
+        ConsoleUtils.PrintDictionary(values);
         return 0;
     }
 

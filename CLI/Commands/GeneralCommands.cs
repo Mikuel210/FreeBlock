@@ -69,18 +69,7 @@ public static class GeneralCommands
         }
 
         foreach (var entry in entries)
-        {
-            string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
-            string reasonsString = blockReasons.Length == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
-
-            string typeIcon = entry.Type switch  {
-                EntryType.Website => "🌐",
-                EntryType.App => "💻",
-                _ => "📋"
-            };
-
-            Console.WriteLine($"{typeIcon}🟢 {entry.Name}{reasonsString}");
-        }
+            entry.PrintStatus(state);
 
         if (showLists)
         {
@@ -95,10 +84,7 @@ public static class GeneralCommands
         foreach (var list in lists)
         {
             Entry entry = new(EntryType.List, list.Name);
-            string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
-
-            string reasonsString = blockReasons.Length == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
-            Console.WriteLine($"📋{(blockReasons.Length > 0 ? "🟢" : "🔴")} {list.Name}{reasonsString}");
+            entry.PrintStatus(state);
         }
 
         // Locks
@@ -110,7 +96,8 @@ public static class GeneralCommands
             printedSection = true;
         }
 
-        foreach (var @lock in state.Locks) Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
+        foreach (var @lock in state.Locks)
+            @lock.PrintStatus();
 
         // Schedules
         if (showSchedules)
@@ -128,11 +115,7 @@ public static class GeneralCommands
         }
 
         foreach (var schedule in schedules)
-        {
-            string timeString = $"({schedule.StartTime} - {schedule.EndTime}, {schedule.Days.GetDaysString()})";
-            string icon = schedule.Active ? "🟢" : (schedule.InWarningPeriod ? "🟠" : "🔴");
-            Console.WriteLine($"⏰{icon} {schedule.Name} {timeString}");
-        }
+            schedule.PrintStatus();
 
         return 0;
     }

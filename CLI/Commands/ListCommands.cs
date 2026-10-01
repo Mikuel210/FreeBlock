@@ -22,10 +22,7 @@ public static class ListCommands
         foreach (var list in lists)
         {
             Entry entry = new(EntryType.List, list.Name);
-            string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
-
-            string reasonsString = blockReasons.Length == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
-            Console.WriteLine($"📋{(blockReasons.Length > 0 ? "🟢" : "🔴")} {list.Name}{reasonsString}");
+            entry.PrintStatus(state);
         }
 
         return 0;

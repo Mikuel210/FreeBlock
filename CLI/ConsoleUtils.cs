@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Diagnostics;
 using Core;
 
 namespace CLI;
@@ -17,7 +17,7 @@ public static class ConsoleUtils
         Console.WriteLine("Waiting for your editor to close the file...");
         using var process = StartEditor(path);
 
-        if (process == null) 
+        if (process == null)
         {
             Error("Failed to launch text editor");
             Console.WriteLine();
@@ -35,7 +35,7 @@ public static class ConsoleUtils
 
         var lists = await ConnectionManager.Connection!.InvokeAsync<List<List>>("GetListsAsync");
 
-        for (int i = 0; i < lines.Count; i++) 
+        for (int i = 0; i < lines.Count; i++)
         {
             string line = lines[i];
             bool result = line.ToEntry(out var entry, out var error, lists, list);
@@ -55,7 +55,7 @@ public static class ConsoleUtils
 
         foreach (var error in errors.Reverse())
             lines.RemoveAt(error.Key);
-        
+
         if (errors.Count > 0) Console.WriteLine();
 
         // Remove file
@@ -113,14 +113,25 @@ public static class ConsoleUtils
             if (list.Entries.Contains(entry))
                 blockReasons.Add($"📋 {list.Name}");
         }
-            
+
         foreach (var schedule in state.Schedules.Where(e => e.Active))
-        {  
+        {
             if (schedule.Entries.Contains(entry))
                 blockReasons.Add($"⏰ {schedule.Name}");
         }
 
         return [.. blockReasons];
+    }
+
+    public static void PrintDictionary(Dictionary<string, object?> dictionary)
+    {
+        int spaces = dictionary.Select(e => e.Key).Max(e => e.Length) + 3;
+
+        foreach (var keyValue in dictionary)
+        {
+            var spaceString = new string(' ', spaces - keyValue.Key.Length);
+            Console.WriteLine($"{keyValue.Key}{spaceString}{keyValue.Value}");
+        }
     }
 
     private static void TitledMessage(string title, string message, ConsoleColor color)
@@ -133,7 +144,9 @@ public static class ConsoleUtils
     }
 
     public static void Note(string message) => TitledMessage("Note", message, ConsoleColor.Blue);
+
     public static void Warning(string message) => TitledMessage("Warning", message, ConsoleColor.Yellow);
+
     public static void Error(string message) => TitledMessage("Error", message, ConsoleColor.Red);
 
     public static bool PromptYesNo(string message, bool defaultValue = true, bool disableWriteLine = false)
@@ -157,7 +170,7 @@ public static class ConsoleUtils
         }
     }
 
-    public static bool PromptClose(bool disableWriteLine = false) 
+    public static bool PromptClose(bool disableWriteLine = false)
         => PromptYesNo($"This will close all browsers and all blocked apps. Okay to continue?", true, disableWriteLine);
 
 }

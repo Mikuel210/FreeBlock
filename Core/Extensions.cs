@@ -43,38 +43,6 @@ public static class Extensions
         return output;
     }
 
-    /// <summary>
-    /// Whether resolving <paramref name="entry"/> would revisit a list already on the path. The visited
-    /// set starts with the list being edited, so a cycle is a name already on that path, not any
-    /// repeat visit of a name reached twice by different routes (C3).
-    /// </summary>
-    public static bool IsRecursive(this Entry entry, Func<string, List?> listFromName, HashSet<string> visited)
-    {
-        if (entry.Type != EntryType.List) return false;
-        if (visited.Contains(entry.Name)) return true;
-
-        var list = listFromName(entry.Name);
-        if (list is null) return false;
-
-        visited.Add(entry.Name);
-        return list.Entries.Any(e => e.IsRecursive(listFromName, visited));
-    }
-
-    public static string ToEntryString(this Entry entry)
-    {
-        string prefix = entry.Type switch
-        {
-            EntryType.Website => "",
-            EntryType.App => "+",
-            EntryType.List => "@",
-            _ => throw new NotImplementedException(),
-        };
-
-        return prefix + entry.Name;
-    }
-
-    /// <param name="lists">All known lists. A list entry pointing at a name not in here is dropped rather than
-    /// left dangling, because a dangling reference would throw later during resolution (B6).</param>
     public static bool ToEntry(this string line, [NotNullWhen(true)] out Entry? entry, out string? error, List<List> lists, string? list = null)
     {
         entry = null;
@@ -130,10 +98,6 @@ public static class Extensions
         return true;
     }
 
-    /// <summary>
-    /// Normalizes a URL so that a site blocked as <c>example.com</c> cannot be reached through a
-    /// cosmetically different form of the same address.
-    /// </summary>
     public static string SanitizeUrl(this string url)
     {
         url = url.Trim();
