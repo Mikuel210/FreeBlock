@@ -5,6 +5,7 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken token)
     {
         // Initialize
+        State.Initialize();
         Config.Initialize();
 
         while (!token.IsCancellationRequested)

@@ -6,7 +6,7 @@ namespace CLI;
 public static class ListCommands
 {
 
-    public static async Task ShowStatus()
+    public static async Task<int> ShowStatus()
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
         var lists = state.Lists.ToArray();
@@ -14,7 +14,7 @@ public static class ListCommands
         if (lists.Length == 0)
         {
             Console.WriteLine("No lists found");
-            return;
+            return 0;
         }
 
         lists.Sort((a, b) => b.IsActive(state).CompareTo(a.IsActive(state)));
@@ -27,12 +27,17 @@ public static class ListCommands
             string reasonsString = blockReasons.Length == 0 ? "" : $" ({string.Join(", ", blockReasons)})";
             Console.WriteLine($"📋{(blockReasons.Length > 0 ? "🟢" : "🔴")} {list.Name}{reasonsString}");
         }
+
+        return 0;
     }
 
-    public static async Task ShowList(ListArgument argument)
-        => Console.WriteLine(await ConnectionManager.Connection!.InvokeAsync<string>("GetListContentsAsync", argument.Value!));
+    public static async Task<int> ShowList(ListArgument argument)
+    {
+        Console.WriteLine(await ConnectionManager.Connection!.InvokeAsync<string>("GetListContentsAsync", argument.Value!));
+        return 0;
+    }
 
-    public static async Task AddList(AddListArgument argument)
+    public static async Task<int> AddList(AddListArgument argument)
     {
         var list = new List { Name = argument.Value! };
 
@@ -41,9 +46,11 @@ public static class ListCommands
 
         await ConnectionManager.Connection!.InvokeAsync("AddListAsync", list, contents);
         Console.WriteLine($"Added list: {list.Name}");
+
+        return 0;
     }
 
-    public static async Task EditList(ListArgument argument)
+    public static async Task<int> EditList(ListArgument argument)
     {
         var list = argument.Value!;
         var previousEntries = list.Entries;
@@ -60,7 +67,7 @@ public static class ListCommands
             foreach (var entry in previousEntries)
             {
                 if (entries.Contains(entry)) continue;
-                
+
                 entries.Add(entry);
                 contents += $"\n{entry.ToEntryString()}";
                 showWarning = true;
@@ -72,7 +79,7 @@ public static class ListCommands
             if (!entries.All(e => e.IsActive(state)))
             {
                 Console.WriteLine();
-                if (!ConsoleUtils.PromptClose(true)) return;
+                if (!ConsoleUtils.PromptClose(true)) return 1;
             }
         }
 
@@ -80,9 +87,11 @@ public static class ListCommands
 
         await ConnectionManager.Connection!.InvokeAsync("EditListAsync", list, contents);
         Console.WriteLine($"Updated list: {list.Name}");
+
+        return 0;
     }
 
-    public static async Task RenameList(ListArgument listArgument, AddListArgument nameArgument)
+    public static async Task<int> RenameList(ListArgument listArgument, AddListArgument nameArgument)
     {
         var list = listArgument.Value!;
         string oldName = list.Name;
@@ -90,9 +99,11 @@ public static class ListCommands
 
         await ConnectionManager.Connection!.InvokeAsync("RenameListAsync", list, newName);
         Console.WriteLine($"Renamed list: {oldName} -> {newName}");
+
+        return 0;
     }
 
-    public static async Task RemoveList(ListArgument argument)
+    public static async Task<int> RemoveList(ListArgument argument)
     {
         var list = argument.Value!;
         var entry = new Entry(EntryType.List, list.Name);
@@ -101,10 +112,10 @@ public static class ListCommands
         string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
 
         // Check if list is active
-        if (blockReasons.Length > 0) 
+        if (blockReasons.Length > 0)
         {
             ConsoleUtils.Error($"Removing lists while they're active is not allowed: {list.Name}");
-            return;
+            return 1;
         }
 
         // Check usage
@@ -126,10 +137,12 @@ public static class ListCommands
             used = true;
         }
 
-        if (used) return;
+        if (used) return 1;
 
         await ConnectionManager.Connection!.InvokeAsync("RemoveListAsync", list);
         Console.WriteLine($"Removed list: {list.Name}");
+
+        return 0;
     }
 
 }

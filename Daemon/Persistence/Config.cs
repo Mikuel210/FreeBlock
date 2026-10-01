@@ -1,6 +1,4 @@
-﻿using Core;
-
-namespace Daemon;
+﻿namespace Daemon;
 
 public static class Config
 {
@@ -19,7 +17,8 @@ public static class Config
         public bool showWarningPeriodSchedules = true;
     }
 
-    private static readonly JsonFile _file = new(Platform.ConfigFile, new DefaultValue());
+    private static JsonFile? _file;
+    private static JsonFile File => _file ??= new JsonFile(Platform.ConfigFile, new DefaultValue());
 
     public static void Initialize()
     {
@@ -29,7 +28,7 @@ public static class Config
         {
             try
             {
-                Set(nameof(DefaultValue.hosts), File.ReadAllText(Platform.HostsPath));
+                Set(nameof(DefaultValue.hosts), System.IO.File.ReadAllText(Platform.HostsPath));
             }
             catch (Exception e)
             {
@@ -41,10 +40,13 @@ public static class Config
         Save();
     }
 
-    public static object? Get(string key, Type type) => _file.Get(key, type);
-    public static T? Get<T>(string key) where T : class => _file.Get<T>(key);
+    public static object? Get(string key, Type type) => File.Get(key, type);
+    public static T? Get<T>(string key) where T : class => File.Get<T>(key);
 
-    public static void Set(string key, object value) => _file.Set(key, value);
-    public static void Save() => _file.Save();
+    /// <summary>For tests: point Config at a file that is not the installed one.</summary>
+    public static void Initialize(JsonFile file) => _file = file;
+
+    public static void Set(string key, object value) => File.Set(key, value);
+    public static void Save() => File.Save();
 
 }

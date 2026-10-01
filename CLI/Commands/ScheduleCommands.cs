@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Core;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
 
 namespace CLI;
 
 public static class ScheduleCommands
 {
 
-    public static async Task ShowStatus()
+    public static async Task<int> ShowStatus()
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
         List<Schedule> schedules = [.. state.Schedules];
@@ -15,10 +14,11 @@ public static class ScheduleCommands
         if (schedules.Count == 0)
         {
             Console.WriteLine("No schedules found");
-            return;
+            return 0;
         }
 
-        schedules.Sort((a, b) => {
+        schedules.Sort((a, b) =>
+        {
             int aPriority = a.Active ? 0 : (a.InWarningPeriod ? 1 : 2);
             int bPriority = b.Active ? 0 : (b.InWarningPeriod ? 1 : 2);
             return aPriority.CompareTo(bPriority);
@@ -30,12 +30,17 @@ public static class ScheduleCommands
             string icon = schedule.Active ? "🟢" : (schedule.InWarningPeriod ? "🟠" : "🔴");
             Console.WriteLine($"⏰{icon} {schedule.Name} {timeString}");
         }
+
+        return 0;
     }
 
-    public static async Task ShowSchedule(ScheduleArgument argument)
+    public static async Task<int> ShowSchedule(ScheduleArgument argument)
     {
         var schedule = argument.Value!;
         var state = schedule.Active ? "Active" : (schedule.InWarningPeriod ? "Warning" : "Inactive");
+
+        var removal = schedule.RemovalRequestTime == null ? "Not requested"
+            : $"{schedule.RemovalRequestTime} - {schedule.RemovalRequestTime + TimeSpan.FromDays(1)}";
 
         Dictionary<string, object?> values = new() {
             { "Name", schedule.Name },
@@ -44,7 +49,8 @@ public static class ScheduleCommands
             { "Days", schedule.Days.GetDaysString() },
             { "Entries", string.Join(", ", schedule.Entries.Select(e => e.ToEntryString())) },
             { "Warning time", schedule.Options.WarningTime },
-            { "State", state }
+            { "State", state },
+            { "Removal window", removal}
         };
 
         int spaces = values.Keys.Max(e => e.Length) + 3;
@@ -54,9 +60,12 @@ public static class ScheduleCommands
             var spaceString = new string(' ', spaces - value.Key.Length);
             Console.WriteLine($"{value.Key}{spaceString}{value.Value}");
         }
+
+        return 0;
     }
 
-    public static async Task AddSchedule(AddScheduleArgument name, TimeArgument start, TimeArgument end, DaysArgument days, EntriesArgument entriesArgument)
+    public static async Task<int> AddSchedule(AddScheduleArgument name, TimeArgument start, TimeArgument end,
+        DaysArgument days, EntriesArgument entriesArgument)
     {
         var entries = entriesArgument.Value!;
 
@@ -72,59 +81,56 @@ public static class ScheduleCommands
             }
         };
 
-        if (schedule.Active && !ConsoleUtils.PromptClose()) return;
+        if (schedule.Active && !ConsoleUtils.PromptClose()) return 1;
 
         await ConnectionManager.Connection!.InvokeAsync("AddScheduleAsync", schedule);
         Console.WriteLine($"Added schedule: {schedule.Name}");
+
+        return 0;
     }
 
-    public static async Task EditSchedule(ScheduleArgument scheduleArgument, List<IFlag> flags)
+    public static async Task<int> EditSchedule(ScheduleArgument scheduleArgument, List<IFlag> flags)
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
 
         var schedule = scheduleArgument.Value!;
+        var previousDuration = schedule.Duration;
         var start = schedule.StartTime;
         var end = schedule.EndTime;
-        var days = schedule.Days.ToList();
+        List<DayOfWeek> days = [.. schedule.Days];
         var entries = schedule.Entries;
         var options = schedule.Options;
 
         bool activeOrWarning = schedule.Active || schedule.InWarningPeriod;
         bool changesMade = false;
-        bool showedWarnings = false;
-        bool revertTime = false;
 
+        // A new start or end time can make the window longer even when one moves in the shrinking
+        // direction, because a schedule whose end is at or before its start wraps overnight
         if (flags.OfType<ScheduleStartTimeFlag>().FirstOrDefault() is { } startTimeFlag)
         {
-            bool revertStart = activeOrWarning && startTimeFlag.Value > schedule.StartTime;
-            if (!revertStart) start = startTimeFlag.Value!;
-
-            revertTime = revertStart;
-            changesMade = !revertStart;
+            start = startTimeFlag.Value!;
+            changesMade = true;
         }
 
         if (flags.OfType<ScheduleEndTimeFlag>().FirstOrDefault() is { } endTimeFlag)
         {
-            bool revertEnd = activeOrWarning && endTimeFlag.Value < schedule.EndTime;
-            if (!revertEnd) end = endTimeFlag.Value!;
-
-            revertTime = revertTime || revertEnd;
-            changesMade = changesMade || !revertEnd;
+            end = endTimeFlag.Value!;
+            changesMade = true;
         }
 
-        if (revertTime) 
+        if (Schedule.GetDuration(start, end) < previousDuration)
         {
             if (schedule.Active)
-                ConsoleUtils.Warning("Making a schedule shorter while it's active is not allowed and changes have been reverted");
+                ConsoleUtils.Error("Making a schedule shorter while it's active is not allowed");
             if (schedule.InWarningPeriod)
-                ConsoleUtils.Warning("Making a schedule shorter while in the warning period is not allowed and changes have been reverted");
+                ConsoleUtils.Error("Making a schedule shorter while in the warning period is not allowed");
 
-            showedWarnings = true;
+            return 1;
         }
 
         if (flags.OfType<ScheduleDaysFlag>().FirstOrDefault() is { } daysFlag)
         {
-            var previousDays = days.ToList();
+            var previousDays = days.OrderBy(x => x).ToList();  // B3: sort before comparing
 
             if (!activeOrWarning)
             {
@@ -144,17 +150,34 @@ public static class ScheduleCommands
                 if (daysFlag.Value!.Contains(day)) continue;
 
                 if (schedule.Active)
-                    ConsoleUtils.Warning($"Removing days of the week while a schedule is active is not allowed and they have been added back");
+                    ConsoleUtils.Error($"Removing days of the week while a schedule is active is not allowed");
                 if (schedule.InWarningPeriod)
-                    ConsoleUtils.Warning($"Removing days of the week while in the warning period is not allowed and they have been added back");
+                    ConsoleUtils.Error($"Removing days of the week while in the warning period is not allowed");
 
-                showedWarnings = true;
-                break;
+                return 1;
             }
 
-            End:
+        End:
             days.Sort();
-            changesMade = changesMade || days != previousDays;
+            changesMade = changesMade || !days.SequenceEqual(previousDays);
+        }
+
+        if (schedule.Active && !Schedule.IsActive(start, end, [.. days], DateTime.Now))
+        {
+            ConsoleUtils.Error("Moving a schedule to unblock it while it's active is not allowed");
+            return 1;
+        }
+
+        bool endsEarlier = end.ToTimeSpan() > DateTime.Now.TimeOfDay && end < schedule.EndTime;
+
+        if (activeOrWarning && endsEarlier)
+        {
+            if (schedule.Active)
+                ConsoleUtils.Error("Making a schedule end earlier while it's active is not allowed");
+            if (schedule.InWarningPeriod)
+                ConsoleUtils.Error("Making a schedule end earlier while in the warning period is not allowed");
+
+            return 1;
         }
 
         if (flags.OfType<ScheduleWarningTimeFlag>().FirstOrDefault() is { } warningTimeFlag)
@@ -164,11 +187,11 @@ public static class ScheduleCommands
             if (newTime < options.WarningTime && activeOrWarning)
             {
                 if (schedule.Active)
-                    ConsoleUtils.Warning("Decreasing the warning time while the schedule is active is not allowed");
-                if (schedule.InWarningPeriod) 
-                    ConsoleUtils.Warning("Decreasing the warning time while in the warning period is not allowed");
+                    ConsoleUtils.Error("Decreasing the warning time while the schedule is active is not allowed");
+                if (schedule.InWarningPeriod)
+                    ConsoleUtils.Error("Decreasing the warning time while in the warning period is not allowed");
 
-                showedWarnings = true;
+                return 1;
             }
             else
             {
@@ -177,41 +200,39 @@ public static class ScheduleCommands
             }
         }
 
-        if (showedWarnings) Console.WriteLine();
-
         if (flags.OfType<ScheduleEntriesFlag>().FirstOrDefault() is { } entriesFlag)
         {
             // Revert removed entries
             var previousEntries = entries;
             entries = entriesFlag.Value!;
-            
+
             bool active = Schedule.IsActive(start, end, [.. days]);
 
-            if (active) 
+            if (active)
             {
                 bool showWarning = false;
 
                 foreach (var entry in previousEntries)
                 {
                     if (entries.Contains(entry)) continue;
-                    
+
                     entries.Add(entry);
                     showWarning = true;
                 }
 
-                if (showWarning) 
+                if (showWarning)
                 {
                     if (schedule.Active)
                         ConsoleUtils.Warning("Removing entries while the schedule is active is not allowed and they have been added back");
                     if (schedule.InWarningPeriod)
                         ConsoleUtils.Warning("Removing entries while in the warning period is not allowed and they have been added back");
-                }
 
-                showedWarnings = showedWarnings || showWarning;
+                    Console.WriteLine();
+                }
             }
-            
+
             // Prompt close
-            if (active && !entries.All(e => e.IsActive(state)) && !ConsoleUtils.PromptClose(true)) return;
+            if (active && !entries.All(e => e.IsActive(state)) && !ConsoleUtils.PromptClose(true)) return 1;
             changesMade = changesMade || !entries.SequenceEqual(previousEntries);
         }
 
@@ -230,9 +251,11 @@ public static class ScheduleCommands
 
         if (changesMade) Console.WriteLine($"Updated schedule: {scheduleArgument.Value.Name}");
         else Console.WriteLine("No changes made");
+
+        return 0;
     }
 
-    public static async Task RenameSchedule(ScheduleArgument scheduleArgument, AddScheduleArgument nameArgument)
+    public static async Task<int> RenameSchedule(ScheduleArgument scheduleArgument, AddScheduleArgument nameArgument)
     {
         var schedule = scheduleArgument.Value!;
         string oldName = schedule.Name;
@@ -240,9 +263,11 @@ public static class ScheduleCommands
 
         await ConnectionManager.Connection!.InvokeAsync("RenameScheduleAsync", schedule, newName);
         Console.WriteLine($"Renamed schedule: {oldName} -> {newName}");
+
+        return 0;
     }
 
-    public static async Task RemoveSchedule(ScheduleArgument argument)
+    public static async Task<int> RemoveSchedule(ScheduleArgument argument)
     {
         var schedule = argument.Value!;
         bool inWarningPeriod = schedule.InWarningPeriod;
@@ -253,9 +278,9 @@ public static class ScheduleCommands
             bool inWindow = false;
             bool requested = false;
 
-            if (schedule.RemovalRequestTime is DateTime removalRequestTime) 
+            if (schedule.RemovalRequestTime is DateTime removalRequestTime)
             {
-                inWindow = now >= removalRequestTime.AddDays(1) 
+                inWindow = now >= removalRequestTime.AddDays(1)
                     && now < removalRequestTime.AddDays(2);
 
                 requested = now >= removalRequestTime
@@ -263,7 +288,7 @@ public static class ScheduleCommands
             }
 
             // Can request removal
-            if (!inWindow && !requested) 
+            if (!inWindow && !requested)
             {
                 if (!inWarningPeriod) ConsoleUtils.Error($"Removing schedules while they're active is not allowed: {schedule.Name}");
                 else ConsoleUtils.Error($"Removing schedules while in the warning period is not allowed: {schedule.Name}");
@@ -275,13 +300,15 @@ public static class ScheduleCommands
                 {
                     await ConnectionManager.Connection!.InvokeAsync("RequestScheduleRemovalAsync", schedule);
                     Console.WriteLine($"Requested schedule removal: {schedule.Name}");
+
+                    return 0;
                 }
 
-                return;
+                return 1;
             }
-            
+
             // Requested
-            if (!inWindow && requested) 
+            if (!inWindow && requested)
             {
                 if (!inWarningPeriod) ConsoleUtils.Error($"Removing schedules while they're active is not allowed: {schedule.Name}");
                 else ConsoleUtils.Error($"Removing schedules while in the warning period is not allowed: {schedule.Name}");
@@ -289,14 +316,16 @@ public static class ScheduleCommands
                 var windowStart = ((DateTime)schedule.RemovalRequestTime!).AddDays(1);
                 ConsoleUtils.Note($"The removal of this schedule is already requested. The window starts {windowStart}");
 
-                return;
+                return 1;
             }
-            
+
             // In window: continue
         }
 
         await ConnectionManager.Connection!.InvokeAsync("RemoveScheduleAsync", schedule);
         Console.WriteLine($"Removed schedule: {schedule.Name}");
+
+        return 0;
     }
 
 }

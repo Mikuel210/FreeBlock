@@ -28,10 +28,10 @@ public static class HelpSystem
 
             foreach (var flag in command.Flags)
             {
-                string name = flag.LongName;
+                string name = flag.Name;
 
                 if (flag.ShortName != null)
-                    name = $"{flag.ShortName}, {flag.LongName}";
+                    name = $"{flag.ShortName}, {flag.Name}";
 
                 flagNames.Add(flag, name);
             }
@@ -113,7 +113,7 @@ public static class HelpSystem
         {
             if (!includeFlags)
                 return "freeblock <command> [<args>]";
-            
+
             return "freeblock [-v | --version] [-h | --help] [--uninstall] <command> [<args>]";
         }
 
@@ -121,14 +121,14 @@ public static class HelpSystem
         if (command.Arguments.Any(e => e.Params)) arguments += "...";
 
         string flags = includeFlags ? string.Join(' ', command.Flags.Select(e => {
-            string name = e.LongName;
+            string name = e.Name;
 
             if (e.ShortName != null)
                 name = $"{e.ShortName} | {name}";
 
             if (e.IsSwitch) return $"[{name}]";
-            
-            string value = e.ValueName == null ? $"<{e.LongName[2 ..]}>" : $"<{e.ValueName}>";
+
+            string value = e.ValueName == null ? $"<{e.Name[2 ..]}>" : $"<{e.ValueName}>";
             if (e.Params) value += "...";
 
             if (e.ShortName != null)
@@ -150,8 +150,8 @@ public static class HelpSystem
         foreach (var command in CommandSystem.Commands)
         {
             if (command != parent
-                && command.Route.Length >= parent.Route.Length 
-                && command.Route[.. parent.Route.Length].SequenceEqual(parent.Route) 
+                && command.Route.Length >= parent.Route.Length
+                && command.Route[.. parent.Route.Length].SequenceEqual(parent.Route)
                 && command.Executable)
                 commands.Add(command);
         }

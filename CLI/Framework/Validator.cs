@@ -5,13 +5,31 @@ namespace CLI;
 
 public static class Validator
 {
+    // Test seam: FakeHub replaces this delegate to intercept hub calls during tests
+    internal static Func<string, object?[], Task<object?>> Invoke = 
+        (method, args) => ConnectionManager.Connection!.InvokeAsync<object?>(method, args);
+
+    private static string GetPosixName(IName argument)
+        => argument.Name.StartsWith('-') ? $"[{argument.Name}]" : $"<{argument.Name}>";
+
     public static async Task<(bool, object?)> ValidateString(IName argument, string input)
         => (true, input);
+
+    public static async Task<(bool, object?)> ValidateBool(IName argument, string input)
+    {
+        string value = input.Trim().ToLowerInvariant();
+
+        if (value is "true" or "1") return (true, true);
+        if (value is "false" or "0") return (true, false);
+
+        Console.WriteLine($"{GetPosixName(argument)} must be a boolean (true | false)");
+        return (false, false);
+    }
 
     public static async Task<(bool, object?)> ValidateEntries(IName argument, string input)
     {
         var lines = input.Split(' ');
-        var lists = await ConnectionManager.Connection!.InvokeAsync<List<List>>("GetListsAsync");
+        var lists = await ConnectionManager.Connection.InvokeAsync<List<List>>("GetListsAsync");
 
         List<Entry> entries = [];
         List<string> errors = [];
@@ -29,19 +47,17 @@ public static class Validator
             entries.Add(entry!);
         }
 
-        errors.ForEach(e => ConsoleUtils.Warning(e));
-        if (errors.Count > 0) Console.WriteLine();
-
+        errors.ForEach(e => Console.WriteLine($"{GetPosixName(argument)}: {e}"));
         return (true, entries);
     }
 
     public static async Task<(bool, object?)> ValidateIName<T>(IName argument, string input) where T : IName
     {
-        var value = await ConnectionManager.Connection!.InvokeAsync<T>($"Get{typeof(T).Name}FromNameAsync", input);
+        var value = await ConnectionManager.Connection.InvokeAsync<T?>($"Get{typeof(T).Name}FromNameAsync", input);
 
         if (value == null)
         {
-            Console.WriteLine($"{typeof(T).Name} not found: {input}");
+            Console.WriteLine($"{GetPosixName(argument)}: {typeof(T).Name} not found: {input}");
             return (false, default);
         }
 
@@ -51,11 +67,11 @@ public static class Validator
     public static async Task<(bool, object?)> ValidateAddIName<T>(IName argument, string input) where T : IName
     {
         // Check if object already exists
-        var @object = await ConnectionManager.Connection!.InvokeAsync<T>($"Get{typeof(T).Name}FromNameAsync", input);
+        var @object = await ConnectionManager.Connection.InvokeAsync<T?>($"Get{typeof(T).Name}FromNameAsync", input);
 
         if (@object != null)
         {
-            Console.WriteLine($"{typeof(T).Name} already exists: {input}");
+            Console.WriteLine($"{GetPosixName(argument)}: {typeof(T).Name} already exists: {input}");
             return (false, null);
         }
 
@@ -64,25 +80,26 @@ public static class Validator
         {
             if (char.IsLetterOrDigit(character) || character == '-' || character == '_') continue;
 
-            Console.WriteLine("Name can only contain letters, digits, '-' and '_'");
+            Console.WriteLine($"{GetPosixName(argument)}: Name can only contain letters, digits, '-' and '_'");
             return (false, null);
         }
 
         return (true, input);
     }
 
-    public static async Task<(bool, object?)> ValidateTimeSpan(IName argument, string input) {
+    public static async Task<(bool, object?)> ValidateTimeSpan(IName argument, string input)
+    {
         var result = TimeSpan.TryParse(input, out var value);
 
         if (!result)
         {
-            Console.WriteLine($"[{argument.Name}] must be a valid timespan (HH:MM[:SS])");
+            Console.WriteLine($"{GetPosixName(argument)} must be a valid timespan (HH:MM[:SS])");
             return (false, default);
         }
 
         if (value < TimeSpan.Zero)
         {
-            Console.WriteLine($"[{argument.Name}] must be a positive timespan");
+            Console.WriteLine($"{GetPosixName(argument)} must be a positive timespan");
             return (false, default);
         }
 
@@ -106,7 +123,7 @@ public static class Validator
         {
             if (!"mtwhfsu".Contains(day))
             {
-                Console.WriteLine($"[{argument.Name}] must be days of the week: MTWHFSU | weekdays | weekends | everyday");
+                Console.WriteLine($"{GetPosixName(argument)} must be days of the week: MTWHFSU | weekdays | weekends | everyday");
                 return (false, null);
             }
 
@@ -132,7 +149,7 @@ public static class Validator
 
         if (!result)
         {
-            Console.WriteLine($"[{argument.Name}] must be a valid time (HH:MM:SS)");
+            Console.WriteLine($"{GetPosixName(argument)} must be a valid time (HH:MM:SS)");
             return (false, default);
         }
 
@@ -142,23 +159,22 @@ public static class Validator
     public static async Task<(bool, object?)> ValidateConfigKey(IName argument, string input)
     {
         var keys = ConfigSystem.Options.Keys;
-        var keysLower = keys.Select(e => e.ToLowerInvariant());
+        var match = keys.FirstOrDefault(e => e.ToLowerInvariant() == input.ToLowerInvariant());
 
-        if (keysLower.Contains(input.ToLowerInvariant()))
-            return (true, keys.Single(e => e.ToLowerInvariant() == input.ToLowerInvariant()));
+        if (match != null) return (true, match);
 
-        Console.WriteLine($"[{argument.Name}] must be a valid configuration key");
+        Console.WriteLine($"{GetPosixName(argument)} must be a valid configuration key");
         return (false, null);
     }
 
-    public static async Task<(bool, object?)> ValidateConfigValue(string input, ConfigKeyArgument keyArgument)
+    public static async Task<(bool, object?)> ValidateConfigValue(IName argument, string input)
     {
+        var keyArgument = (argument as ConfigValueArgument)?.KeyArgument ?? throw new ArgumentException("Argument is not a config value", nameof(argument));
+
         var valueArgument = ConfigSystem.GetArgument(keyArgument.Value!);
+        var valid = await valueArgument.Validate(input);
 
-        if (await valueArgument.Validate(input))
-            return (true, valueArgument.Value);
-
-        return (false, null);
+        return valid ? (true, valueArgument.Value) : (false, null);
     }
 
 }

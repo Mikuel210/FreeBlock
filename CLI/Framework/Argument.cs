@@ -1,6 +1,6 @@
+using ValidateBaseDelegate = System.Func<Core.IName, string, System.Threading.Tasks.Task<(bool, object?)>>;
 using Core;
 using Lock = Core.Lock;
-using ValidateBaseDelegate = System.Func<Core.IName, string, System.Threading.Tasks.Task<(bool, object?)>>;
 
 namespace CLI;
 
@@ -10,15 +10,8 @@ public interface IArgument : IName
     public object? Value { get; protected set; }
     public bool Params { get; }
 
-    public ValidateBaseDelegate ValidateBase { get; };
-
-    public async Task<bool> Validate(string input)
-    {
-        var (result, value) = await ValidateBase(this, input);
-
-        Value = value;
-        return result;
-    }
+    public ValidateBaseDelegate ValidateBase { get; }
+    public Task<bool> Validate(string input);
 }
 
 public abstract record Argument<T>(string Name, string Description, ValidateBaseDelegate ValidateBase, bool Params = false) : IArgument
@@ -29,6 +22,14 @@ public abstract record Argument<T>(string Name, string Description, ValidateBase
         get => Value;
         set => Value = (T)value!;
     }
+
+    public virtual async Task<bool> Validate(string input)
+    {
+        var (result, value) = await ValidateBase(this, input);
+        if (result) Value = (T?)value;
+
+        return result;
+    }
 }
 
 #region Arguments
@@ -37,27 +38,9 @@ public record StringArgument(string Name, string Description) : Argument<string>
 
 public record EntriesArgument(string Name, string Description) : Argument<List<Entry>>(Name, Description, Validator.ValidateEntries, true);
 
-public record INameArgument<T>(string Name, string Description) : Argument<T>(Name, Description) where T : IName
-{
-    public override async Task<bool> Validate(string input)
-    {
-        var (result, value) = await Validator.ValidateIName<T>(input);
+public record INameArgument<T>(string Name, string Description) : Argument<T>(Name, Description, Validator.ValidateIName<T>) where T : IName;
 
-        Value = value;
-        return result;
-    }
-}
-
-public record AddINameArgument<T>(string Name, string Description) : Argument<string>(Name, Description) where T : IName
-{
-    public override async Task<bool> Validate(string input)
-    {
-        var (result, value) = await Validator.ValidateAddIName<T>(input);
-
-        Value = value;
-        return result;
-    }
-}
+public record AddINameArgument<T>(string Name, string Description) : Argument<string>(Name, Description, Validator.ValidateAddIName<T>) where T : IName;
 
 // Lists
 public record ListArgument(string Name, string Description) : INameArgument<List>(Name, Description);
@@ -67,84 +50,23 @@ public record AddListArgument(string Name, string Description) : AddINameArgumen
 public record LockArgument(string Name, string Description) : INameArgument<Lock>(Name, Description);
 public record AddLockArgument(string Name, string Description) : AddINameArgument<Lock>(Name, Description);
 
-public record TimeSpanArgument(string Name, string Description) : Argument<TimeSpan>(Name, Description)
-{
-    public override async Task<bool> Validate(string input)
-    {
-        var (result, value) = await Validator.ValidateTimeSpan(input);
-
-        Value = value;
-        return result;
-    }
-}
-
 // Schedules
 public record ScheduleArgument(string Name, string Description) : INameArgument<Schedule>(Name, Description);
 public record AddScheduleArgument(string Name, string Description) : AddINameArgument<Schedule>(Name, Description);
 
-public record DaysArgument(string Name, string Description) : Argument<DayOfWeek[]>(Name, Description)
-{
-    public override async Task<bool> Validate(string input)
-    {
-        var (result, value) = await Validator.ValidateDays(input);
-
-        Value = value;
-        return result;
-    }
-}
-
-public record TimeArgument(string Name, string Description) : Argument<TimeOnly>(Name, Description)
-{
-    public override async Task<bool> Validate(string input)
-    {
-        var (result, value) = await Validator.ValidateTimeOnly(input);
-
-        Value = value;
-        return result;
-    }
-}
+public record TimeSpanArgument(string Name, string Description) : Argument<TimeSpan>(Name, Description, Validator.ValidateTimeSpan);
+public record DaysArgument(string Name, string Description) : Argument<DayOfWeek[]>(Name, Description, Validator.ValidateDays);
+public record TimeArgument(string Name, string Description) : Argument<TimeOnly>(Name, Description, Validator.ValidateTimeOnly);
 
 // Configuration
-public record ConfigKeyArgument(string Name, string Description) : Argument<string>(Name, Description)
-{
-    public override async Task<bool> Validate(string input)
-    {
-        var (result, value) = await Validator.ValidateConfigKey(input);
+public record ConfigKeyArgument(string Name, string Description) : Argument<string>(Name, Description, Validator.ValidateConfigKey);
 
-        Value = value;
-        return result;
-    }
+public record ConfigValueArgument(string Name, string Description, ConfigKeyArgument KeyArgument)
+    : Argument<object?>(Name, Description, Validator.ValidateConfigValue)
+{
+    public ConfigKeyArgument KeyArgument { get; set; } = KeyArgument;
 }
 
-public record ConfigValueArgument(string Name, string Description, ConfigKeyArgument KeyArgument) : Argument<object?>(Name, Description)
-{
-    public override async Task<bool> Validate(string input)
-    {
-
-    }
-}
-
-public record BoolArgument(string Name, string Description) : Argument<bool>(Name, Description)
-{
-    public override async Task<bool> Validate(string input)
-    {
-        input = input.ToLowerInvariant();
-
-        if (input is "true" or "1")
-        {
-            Value = true;
-            return true;
-        }
-
-        if (input is "false" or "0")
-        {
-            Value = false;
-            return true;
-        }
-
-        Console.WriteLine($"[{Name}] must be a boolean (true | false)");
-        return false;
-    }
-}
+public record BoolArgument(string Name, string Description) : Argument<bool>(Name, Description, Validator.ValidateBool);
 
 #endregion

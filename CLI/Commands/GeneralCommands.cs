@@ -1,28 +1,27 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Core;
-using System.Timers;
 
 namespace CLI;
 
 public static class GeneralCommands
 {
 
-    public static Task HandleRoot(List<IFlag> flags)
+    public static async Task<int> HandleRoot(List<IFlag> flags)
     {
         if (flags.Any(e => e.GetType() == typeof(VersionFlag)))
         {
             Console.WriteLine(Globals.VERSION);
-            return Task.CompletedTask;
+            return 0;
         }
 
         if (flags.Any(e => e.GetType() == typeof(UninstallFlag)))
-            return Uninstall();
+            return await Uninstall();
 
         HelpSystem.ShowUsage(CommandSystem.Commands.Single(e => e.IsRoot));
-        return Task.CompletedTask;
+        return 0;
     }
 
-    public static async Task ShowStatus()
+    public static async Task<int> ShowStatus()
     {
         // Get state and configuration
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
@@ -38,6 +37,8 @@ public static class GeneralCommands
             .OrderBy(e => e.Type)
             .ToArray();
 
+        // showAllLists pulls list entries out of "Active entries" into their own "Block lists" section, so
+        // they are not shown twice. When it is false, lists are reported inline via their entries.
         if (showAllLists) entries = [.. entries.Where(e => e.Type != EntryType.List)];
 
         var lists = state.Lists.ToArray();
@@ -57,7 +58,7 @@ public static class GeneralCommands
         if (!showActiveEntries && !showLocks && !showSchedules)
         {
             Console.WriteLine("No blocking is taking place");
-            return;
+            return 0;
         }
 
         // Blocked entries
@@ -132,9 +133,11 @@ public static class GeneralCommands
             string icon = schedule.Active ? "🟢" : (schedule.InWarningPeriod ? "🟠" : "🔴");
             Console.WriteLine($"⏰{icon} {schedule.Name} {timeString}");
         }
+
+        return 0;
     }
 
-    public static async Task Uninstall()
+    public static async Task<int> Uninstall()
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
 
@@ -143,13 +146,13 @@ public static class GeneralCommands
             state.Schedules.Where(e => e.Active).SelectMany(e => e.Entries).Count() > 0)
         {
             ConsoleUtils.Error("To prevent impulsive choices, FreeBlock can't be uninstalled while blocking is taking place");
-            return;
+            return 1;
         }
 
         if (state.Schedules.Count() > 0)
         {
             ConsoleUtils.Error("To prevent impulsive choices, FreeBlock can't be uninstalled if there are schedules in place");
-            return;
+            return 1;
         }
 
         if (ConsoleUtils.PromptYesNo("Remove user data and preferences?", false))
@@ -157,9 +160,11 @@ public static class GeneralCommands
 
         await ConnectionManager.Connection!.InvokeAsync("UninstallAsync");
         Console.WriteLine("Uninstalled successfully");
+
+        return 0;
     }
 
-    public static async Task Block(EntriesArgument argument)
+    public static async Task<int> Block(EntriesArgument argument)
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
         var entries = argument.Value!;
@@ -205,14 +210,16 @@ public static class GeneralCommands
         }
 
         if (writeLine) Console.WriteLine();
-        if (!allAlreadyActive && !ConsoleUtils.PromptClose()) return;
+        if (!allAlreadyActive && !ConsoleUtils.PromptClose()) return 1;
         await ConnectionManager.Connection!.InvokeAsync("BlockAsync", entries);
 
         if (entries.Count == 1) Console.WriteLine($"Enabled manual block for entry: {entries[0].ToEntryString()}");
         else Console.WriteLine($"Enabled manual block for entries");
+
+        return 0;
     }
 
-    public static async Task Unblock(EntriesArgument argument)
+    public static async Task<int> Unblock(EntriesArgument argument)
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
         var entries = argument.Value!;
@@ -242,7 +249,7 @@ public static class GeneralCommands
             {
                 if (!@lock.Entries.Contains(entry)) continue;
 
-                ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a lock: {entry.ToEntryString()}");
+                ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a lock: {@lock.Name}");
                 writeLine = true;
             }
 
@@ -250,7 +257,7 @@ public static class GeneralCommands
             {
                 if (!schedule.Entries.Contains(entry)) continue;
 
-                ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a schedule: {entry.ToEntryString()}");
+                ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a schedule: {schedule.Name}");
                 writeLine = true;
             }
         }
@@ -260,6 +267,8 @@ public static class GeneralCommands
 
         if (entries.Count == 1) Console.WriteLine($"Disabled manual block for entry: {entries[0].ToEntryString()}");
         else Console.WriteLine($"Disabled manual block for entries");
+
+        return 0;
     }
 
 }

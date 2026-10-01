@@ -79,7 +79,7 @@ public class CommunicationHub : Hub
                     lines[i] = $"@{newName}";
             }
 
-            WriteFile(path, string.Join('\n', lines));
+            WriteFile(path, string.Join('\n', lines));  // C2: was string.Join('\n', path)
         }
 
         // Change name
@@ -91,6 +91,13 @@ public class CommunicationHub : Hub
 
     public async Task RemoveListAsync(List list)
     {
+        var entry = new Entry(EntryType.List, list.Name);
+
+        // A lock referencing this list would resolve to a dangling entry on the next tick (B6).
+        var referencingLock = State.Locks.FirstOrDefault(e => e.Entries.Contains(entry));
+        if (referencingLock != null)
+            throw new InvalidOperationException($"The list is being used by a lock: {referencingLock.Name}");
+
         File.Delete(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
 
         var localList = GetLocalList(list);
@@ -176,10 +183,13 @@ public class CommunicationHub : Hub
 
     // Config
 
-    public async Task<object?> GetConfig(string fieldName)
+    public Task<object?> GetConfig(string fieldName)
     {
-        var type = typeof(Config.DefaultValue).GetField(fieldName)!.FieldType;
-        return Config.Get(fieldName, type!);
+        var field = typeof(Config.DefaultValue).GetField(fieldName)
+            ?? throw new ArgumentException($"Unknown configuration key: {fieldName}", nameof(fieldName));
+
+        var type = field.FieldType;
+        return Task.FromResult(Config.Get(fieldName, type));
     }
 
     public async Task<Dictionary<string, object?>> GetBatchConfig(string[] fieldName)
@@ -192,13 +202,19 @@ public class CommunicationHub : Hub
         return output;
     }
 
-    public async Task SetConfig(string fieldName, JsonElement value)
+    public Task SetConfig(string fieldName, JsonElement value)
     {
-        var type = typeof(Config.DefaultValue).GetField(fieldName)!.FieldType;
-        var typedValue = value.Deserialize(type);
+        var field = typeof(Config.DefaultValue).GetField(fieldName)
+            ?? throw new ArgumentException($"Unknown configuration key: {fieldName}", nameof(fieldName));
 
-        Config.Set(fieldName, typedValue!);
+        var typedValue = value.Deserialize(field.FieldType);
+        if (typedValue == null)
+            throw new ArgumentException($"Invalid value for {fieldName}", nameof(value));
+
+        Config.Set(fieldName, typedValue);
         Config.Save();
+
+        return Task.CompletedTask;
     }
 
 

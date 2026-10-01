@@ -10,7 +10,7 @@ public static class CommandSystem
 
     public static void Register(Command command) => _commands.Add(command);
 
-    public static async Task Handle(string[] args)
+    public static async Task<int> Handle(string[] args)
     {
         // Find command
         args = [.. args.Select(e => e.Trim())];
@@ -19,32 +19,33 @@ public static class CommandSystem
         if (command != null)
             args = [.. args.Skip(command.Route.Length)];
 
+        if (command == null)
+        {
+            // Checked before the flag detection below, which would otherwise dereference a null command (C4).
+            Console.WriteLine($"Command not found: freeblock {string.Join(' ', args)}");
+            Console.WriteLine("See: freeblock --help");
+            return 1;
+        }
+
         // Find positional and flag tokens
         int flagStart = Array.FindIndex(args, a => a.StartsWith('-'));
-        if (flagStart < command?.Arguments.Count) flagStart = -1;
+        if (flagStart < command.Arguments.Count) flagStart = -1;
 
         var positional = flagStart == -1 ? args : args[.. flagStart];
         var flagTokens = flagStart == -1 ? [] : args[flagStart ..];
 
-        if (command == null)
-        {
-            Console.WriteLine($"Command not found: freeblock {string.Join(' ', positional)}");
-            Console.WriteLine("See: freeblock --help");
-            return;
-        }
-        
         // Trigger help
-        if (args.Any(e => e is "-?" or "-h" or "--help")) 
+        if (args.Any(e => e is "-?" or "-h" or "--help"))
         {
             HelpSystem.ShowHelp(command);
-            return;
+            return 0;
         }
 
         // Trigger usage
-        if (!command.Executable && !command.IsRoot) 
+        if (!command.Executable && !command.IsRoot)
         {
             HelpSystem.ShowUsage(command);
-            return;
+            return 0;
         }
 
         // Validate arguments
@@ -56,23 +57,28 @@ public static class CommandSystem
             positionalList = [.. positionalList.GetRange(0, command.Arguments.Count - 1), lastArgument];
         }
 
-        await ValidateArguments(command, [.. positionalList]);
+        int validateResult = await ValidateArguments(command, [.. positionalList]);
+        if (validateResult != 0) return validateResult;
 
         // Validate flags
         object?[] parameters = [.. command.Arguments];
-        
+
         if (command.Flags.Count > 0)
         {
-            var flags = await ValidateFlags(command, [.. flagTokens]);
+            (validateResult, var flags) = await ValidateFlags(command, [.. flagTokens]);
+            if (validateResult != 0) return validateResult;
+
             parameters = [.. parameters, flags];
         }
 
         // Run command
-        if (command.Run.DynamicInvoke(parameters) is Task task)
-            await task;
+        if (command.Run.DynamicInvoke(parameters) is Task<int> task)
+            return await task;
+        else
+            throw new NotImplementedException();
     }
 
-    private static async Task ValidateArguments(Command command, List<string> argsList) 
+    private static async Task<int> ValidateArguments(Command command, List<string> argsList)
     {
         bool hasRead = false;
         int i = 0;
@@ -87,7 +93,6 @@ public static class CommandSystem
 
             Validate:
             var result = await argument.Validate(argsList[i]);
-            if (hasRead || (!hasRead && !result)) Console.WriteLine();
 
             // Remove incorrect argument from array
             if (result) goto Continue;
@@ -95,7 +100,7 @@ public static class CommandSystem
 
             Read:
             string space = (argsList.Count == 0 || argsList[0] == string.Empty) ? "" : " ";
-            Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} [{argument.Name}]: ");
+            Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} <{argument.Name}>: ");
 
             var input = Console.ReadLine()!.Trim();
             hasRead = true;
@@ -103,8 +108,7 @@ public static class CommandSystem
             // Check empty argument
             if (input == string.Empty)
             {
-                Console.WriteLine($"[{argument.Name}] can't be empty");
-                Console.WriteLine();
+                Console.WriteLine($"<{argument.Name}> can't be empty");
                 goto Read;
             }
 
@@ -116,11 +120,19 @@ public static class CommandSystem
             i++;
         }
 
-        if (argsList.Count <= command.Arguments.Count) return;
+        if (argsList.Count <= command.Arguments.Count) goto End;
 
         argsList = [.. argsList.Skip(command.Arguments.Count)];
-        argsList.ForEach(e => ConsoleUtils.Warning($"Unexpected argument: {e}"));
-        Console.WriteLine();
+
+        if (argsList.Count > 0)
+        {
+            ConsoleUtils.Error($"Unexpected argument: {argsList[0]}");
+            return 1;
+        }
+
+        End:
+        if (hasRead) Console.WriteLine();
+        return 0;
     }
 
     private static Command? GetMatchingCommand(string[] args)
@@ -133,7 +145,10 @@ public static class CommandSystem
             if (command.IsRoot && args.Length != 0) continue;
 
             for (int i = 0; i < command.Route.Length; i++)
-                if (command.Route[i] != args[i]) goto End;
+            {
+                if (command.Route[i] != args[i])
+                    goto End;
+            }
 
             matches.Add(command);
         End:;
@@ -143,17 +158,16 @@ public static class CommandSystem
         {
             if (args[0].StartsWith('-'))
                 return _commands.Single(e => e.IsRoot);
-            
+
             return null;
         }
 
         return matches.MaxBy(e => e.Route.Length);
     }
 
-    private static async Task<List<IFlag>> ValidateFlags(Command command, List<string> tokensList)
+    private static async Task<(int, List<IFlag>)> ValidateFlags(Command command, List<string> tokensList)
     {
         List<IFlag> flags = [];
-        bool warnings = false;
         int i = 0;
 
         while (true)
@@ -161,10 +175,10 @@ public static class CommandSystem
             if (i >= tokensList.Count) break;
 
             string token = tokensList[i];
-            
+
             foreach (var flag in command.Flags)
             {
-                if (token != flag.LongName && token != flag.ShortName) continue;
+                if (token != flag.Name && token != flag.ShortName) continue;
 
                 // Switch flags
                 if (flag.IsSwitch)
@@ -178,7 +192,7 @@ public static class CommandSystem
 
                 if (i >= tokensList.Count || tokensList[i].StartsWith('-'))
                 {
-                    Console.WriteLine($"[{flag.LongName}] can't be empty");
+                    Console.WriteLine($"[{flag.Name}] can't be empty");
                     goto Continue;
                 }
 
@@ -198,7 +212,7 @@ public static class CommandSystem
 
                 while (true)
                 {
-                    if (token.StartsWith('-')) 
+                    if (token.StartsWith('-'))
                     {
                         i--;
                         break;
@@ -218,15 +232,14 @@ public static class CommandSystem
             }
 
             // Unknown flag
-            ConsoleUtils.Warning($"Unknown flag: {token}");
-            warnings = true;
+            ConsoleUtils.Error($"Unknown flag: {token}");
+            return (1, []);
 
             Continue:
             i++;
         }
 
-        if (warnings) Console.WriteLine();
-        return flags;
+        return (0, flags);
     }
 
 }

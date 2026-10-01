@@ -7,7 +7,7 @@ namespace CLI;
 public static class LockCommands
 {
 
-    public static async Task ShowStatus()
+    public static async Task<int> ShowStatus()
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
         var locks = state.Locks.ToArray();
@@ -15,13 +15,14 @@ public static class LockCommands
         if (locks.Length == 0)
         {
             Console.WriteLine("No locks found");
-            return;
+            return 0;
         }
 
         foreach (var @lock in locks) Console.WriteLine($"🔒🟢 {@lock.Name} ({@lock.UnlockTime})");
+        return 0;
     }
 
-    public static async Task ShowLock(LockArgument argument)
+    public static async Task<int> ShowLock(LockArgument argument)
     {
         var @lock = argument.Value!;
 
@@ -38,22 +39,26 @@ public static class LockCommands
             var spaceString = new string(' ', spaces - value.Key.Length);
             Console.WriteLine($"{value.Key}{spaceString}{value.Value}");
         }
+
+        return 0;
     }
 
-    public static async Task AddLock(AddLockArgument nameArgument, TimeSpanArgument timeArgument, EntriesArgument entriesArgument)
+    public static async Task<int> AddLock(AddLockArgument nameArgument, TimeSpanArgument timeArgument, EntriesArgument entriesArgument)
     {
         var time = timeArgument.Value!;
         var unlockTime = DateTime.Now.Add(time);
         var @lock = new Lock(nameArgument.Value!, entriesArgument.Value!, unlockTime);
 
         var prompt = $"This will block the provided entries for {time} and close all browsers and all blocked apps. Okay to continue?";
-        if (!ConsoleUtils.PromptYesNo(prompt)) return;
+        if (!ConsoleUtils.PromptYesNo(prompt)) return 1;
 
         await ConnectionManager.Connection!.InvokeAsync("AddLockAsync", @lock);
         Console.WriteLine($"Added lock: {@lock.Name}");
+
+        return 0;
     }
 
-    public static async Task EditLock(LockArgument lockArgument, List<IFlag> flags)
+    public static async Task<int> EditLock(LockArgument lockArgument, List<IFlag> flags)
     {
         StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
 
@@ -68,7 +73,7 @@ public static class LockCommands
             if (!entries.All(e => e.IsActive(state)))
             {
                 Console.WriteLine();
-                if (!ConsoleUtils.PromptClose(true)) return;
+                if (!ConsoleUtils.PromptClose(true)) return 1;
             }
 
             @lock.Entries.AddRange(entries);
@@ -83,14 +88,16 @@ public static class LockCommands
 
             changesMade = true;
         }
-        
+
         await ConnectionManager.Connection!.InvokeAsync("EditLockAsync", @lock);
 
         if (changesMade) Console.WriteLine($"Updated lock: {@lock.Name}");
         else Console.WriteLine("No changes made");
+
+        return 0;
     }
 
-    public static async Task RenameLock(LockArgument lockArgument, AddLockArgument nameArgument)
+    public static async Task<int> RenameLock(LockArgument lockArgument, AddLockArgument nameArgument)
     {
         var @lock = lockArgument.Value!;
         string oldName = @lock.Name;
@@ -98,6 +105,8 @@ public static class LockCommands
 
         await ConnectionManager.Connection!.InvokeAsync("RenameLockAsync", @lock, newName);
         Console.WriteLine($"Renamed lock: {oldName} -> {newName}");
+
+        return 0;
     }
 
 }

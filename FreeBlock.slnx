@@ -1,4 +1,7 @@
 <Solution>
   <Project Path="CLI/CLI.csproj" />
   <Project Path="Daemon/Daemon.csproj" />
+  <Project Path="Tests/Core.Tests/Core.Tests.csproj" />
+  <Project Path="Tests/Blocker.Tests/BlockerTests.csproj" />
+  <Project Path="Tests/CLI.Tests/CLI.Tests.csproj" />
 </Solution>

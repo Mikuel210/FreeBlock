@@ -6,18 +6,24 @@ public class List : IName
     public string Name { get; set; } = string.Empty;
     public List<Entry> Entries { get; set; } = [];
 
-    public bool IsActive(StateSnapshot state, string[]? traceback = null)
+    /// <summary>
+    /// Whether this list is currently contributing to blocking. <paramref name="visited"/> tracks the
+    /// lists on the current resolution path so a cycle terminates instead of recursing forever (C3).
+    /// </summary>
+    public bool IsActive(StateSnapshot state, HashSet<string>? visited = null)
     {
-        traceback ??= [];
-        traceback = [.. traceback, Name];
+        visited ??= [];
+        if (!visited.Add(Name)) return false;
 
         var entry = new Entry(EntryType.List, Name);
-        var lists = state.Lists.Where(e => !traceback.Contains(e.Name) && e.IsActive(state, [.. traceback])).ToList();
 
-        return state.Block.Contains(entry) ||
-            state.Locks.SelectMany(e => e.Entries).Contains(entry) ||
-            state.Schedules.Where(e => e.Active).SelectMany(e => e.Entries).Contains(entry) ||
-            lists.SelectMany(e => e.Entries).Contains(entry);
+        bool active = state.Block.Contains(entry)
+            || state.Locks.SelectMany(e => e.Entries).Contains(entry)
+            || state.Schedules.Where(e => e.Active).SelectMany(e => e.Entries).Contains(entry)
+            || state.Lists.Any(e => !visited.Contains(e.Name) && e.IsActive(state, visited));
+
+        visited.Remove(Name);
+        return active;
     }
 
 }

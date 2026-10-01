@@ -21,4 +21,8 @@
     <ProjectReference Include="..\Core\Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="BlockerTests" />
+  </ItemGroup>
+
 </Project>

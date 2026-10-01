@@ -1,6 +1,5 @@
 ﻿using CLI;
-using Daemon;
-using Microsoft.AspNetCore.SignalR.Client;
+using Core;
 
 #region Commands
 
@@ -167,7 +166,7 @@ CommandSystem.Register(new Command(
     Description: "Edit the properties of a lock",
     Arguments: [new LockArgument("name", "The name of the lock to edit")],
     Flags: [
-        new LockAddEntriesFlag(), 
+        new LockAddEntriesFlag(),
         new LockExtendFlag()
     ],
     Run: LockCommands.EditLock
@@ -320,7 +319,7 @@ CommandSystem.Register(new Command(
 ConfigSystem.Register(
     "schedule.defaultWarningTime",
     new ConfigOption(
-        nameof(Config.DefaultValue.defaultWarningTime),
+        ConfigOptions.FieldNames["schedule.defaultWarningTime"],
         "The default warning time for new schedules",
         () => new TimeSpanArgument("value", string.Empty)
     )
@@ -329,7 +328,7 @@ ConfigSystem.Register(
 ConfigSystem.Register(
     "status.showAllLists",
     new ConfigOption(
-        nameof(Config.DefaultValue.showAllLists),
+        ConfigOptions.FieldNames["status.showAllLists"],
         "Whether to show all lists in status or just active ones",
         () => new BoolArgument("value", string.Empty)
     )
@@ -338,7 +337,7 @@ ConfigSystem.Register(
 ConfigSystem.Register(
     "status.showAllSchedules",
     new ConfigOption(
-        nameof(Config.DefaultValue.showAllSchedules),
+        ConfigOptions.FieldNames["status.showAllSchedules"],
         "Whether to show all schedules in status or just active ones",
         () => new BoolArgument("value", string.Empty)
     )
@@ -347,7 +346,7 @@ ConfigSystem.Register(
 ConfigSystem.Register(
     "status.showWarningPeriodSchedules",
     new ConfigOption(
-        nameof(Config.DefaultValue.showWarningPeriodSchedules),
+        ConfigOptions.FieldNames["status.showWarningPeriodSchedules"],
         "Whether to show schedules in warning period, in case status.showAllSchedules is false",
         () => new BoolArgument("value", string.Empty)
     )
@@ -355,4 +354,4 @@ ConfigSystem.Register(
 
 #endregion
 
-await CommandSystem.Handle(args);
+Environment.Exit(await CommandSystem.Handle(args));
