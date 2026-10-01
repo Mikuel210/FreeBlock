@@ -10,9 +10,10 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
 
         while (!token.IsCancellationRequested)
         {
+            // B10: Apply current state before pruning, so expired locks are enforced until their last second
+            await Blocker.UpdateAsync();
             State.Update();
             NotificationManager.Update();
-            await Blocker.UpdateAsync();
 
             if (logger.IsEnabled(LogLevel.Information))
                 logger.LogInformation("Updated block: {time}", DateTimeOffset.Now);

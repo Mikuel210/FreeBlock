@@ -84,7 +84,8 @@ public static class Extensions
                 }
 
                 // A reference to a list that does not exist cannot be resolved later: drop it now (B6).
-                if (!lists.Any(e => e.Name == lineWithoutPrefix))
+                // B1: Compare list names case-insensitively to match Entry.Equals
+                if (!lists.Any(e => e.Name.Equals(lineWithoutPrefix, StringComparison.OrdinalIgnoreCase)))
                 {
                     error = $"Missing list entry was removed: {lineWithoutPrefix}";
                     return false;

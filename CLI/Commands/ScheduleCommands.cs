@@ -147,6 +147,7 @@ public static class ScheduleCommands
             }
 
         End:
+            days = days.Distinct().ToList();  // B12: remove duplicates before sorting
             days.Sort();
             changesMade = changesMade || !days.SequenceEqual(previousDays);
         }

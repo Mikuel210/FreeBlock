@@ -20,7 +20,7 @@ public class List : IName
         bool active = state.Block.Contains(entry)
             || state.Locks.SelectMany(e => e.Entries).Contains(entry)
             || state.Schedules.Where(e => e.Active).SelectMany(e => e.Entries).Contains(entry)
-            || state.Lists.Any(e => !visited.Contains(e.Name) && e.IsActive(state, visited));
+            || state.Lists.Any(e => e.Entries.Contains(entry) && e.IsActive(state, visited));
 
         visited.Remove(Name);
         return active;

@@ -16,11 +16,11 @@ public class Entry(EntryType type, string name)
     public override bool Equals(object? other)
     {
         if (other is not Entry entry) return false;
-        return entry.Type == Type && entry.Name == Name;
+        return entry.Type == Type && string.Equals(entry.Name, Name, StringComparison.OrdinalIgnoreCase);
     }
 
     public override int GetHashCode()
-        => unchecked(Type.GetHashCode() + Name.GetHashCode());
+        => unchecked(Type.GetHashCode() + StringComparer.OrdinalIgnoreCase.GetHashCode(Name));
 
     public bool IsActive(StateSnapshot state)
     {
