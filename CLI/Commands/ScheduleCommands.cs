@@ -39,14 +39,14 @@ public static class ScheduleCommands
             : $"{schedule.RemovalRequestTime} - {schedule.RemovalRequestTime + TimeSpan.FromDays(1)}";
 
         Dictionary<string, object?> values = new() {
-            { "Name", schedule.Name },
-            { "Start time", schedule.StartTime },
-            { "End time", schedule.EndTime },
-            { "Days", schedule.Days.GetDaysString() },
-            { "Entries", string.Join(", ", schedule.Entries.Select(e => e.ToEntryString())) },
-            { "Warning time", schedule.Options.WarningTime },
-            { "State", state },
-            { "Removal window", removal}
+            { "name", schedule.Name },
+            { "start time", schedule.StartTime },
+            { "end time", schedule.EndTime },
+            { "days", schedule.Days.GetDaysString() },
+            { "entries", string.Join(", ", schedule.Entries.Select(e => e.ToEntryString())) },
+            { "warning time", schedule.Options.WarningTime },
+            { "state", state },
+            { "removal window", removal}
         };
 
         ConsoleUtils.PrintDictionary(values);

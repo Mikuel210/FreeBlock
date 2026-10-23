@@ -29,9 +29,9 @@ public static class LockCommands
         var @lock = argument.Value!;
 
         Dictionary<string, object?> values = new() {
-            { "Name", @lock.Name },
-            { "Unlock time", @lock.UnlockTime },
-            { "Entries", string.Join(", ", @lock.Entries.Select(e => e.ToEntryString())) }
+            { "name", @lock.Name },
+            { "unlock time", @lock.UnlockTime },
+            { "entries", string.Join(", ", @lock.Entries.Select(e => e.ToEntryString())) }
         };
 
         ConsoleUtils.PrintDictionary(values);

@@ -103,8 +103,8 @@ public static class HelpSystem
     {
         string space = command.IsRoot ? "" : " ";
 
-        Console.WriteLine($"Usage: {GetUsage(command, false)}");
-        Console.WriteLine($"See: freeblock {string.Join(' ', command.Route)}{space}--help");
+        Console.WriteLine($"usage: {GetUsage(command, false)}");
+        Console.WriteLine($"see: freeblock {string.Join(' ', command.Route)}{space}--help");
     }
 
     private static string GetUsage(Command command, bool includeFlags = true)
