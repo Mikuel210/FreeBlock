@@ -130,7 +130,11 @@ public static class ConsoleUtils
         foreach (var keyValue in dictionary)
         {
             var spaceString = new string(' ', spaces - keyValue.Key.Length);
-            Console.WriteLine($"{keyValue.Key}{spaceString}{keyValue.Value}");
+
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.Write($"{keyValue.Key.ToLowerInvariant()}{spaceString}");
+            Console.ResetColor();
+            Console.WriteLine(keyValue.Value);
         }
     }
 

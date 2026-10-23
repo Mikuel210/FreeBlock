@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-Daemon-cf4d6155-4155-4ebb-9ba3-d36ac3dd23b8</UserSecretsId>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">

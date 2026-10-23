@@ -4,8 +4,8 @@ public static class HelpSystem
 {
     public static void ShowHelp(Command command)
     {
-        Console.WriteLine($"Usage: {GetUsage(command)}");
-        Console.WriteLine($"Description: {command.Description}");
+        Console.WriteLine($"usage: {GetUsage(command)}");
+        Console.WriteLine($"description: {command.Description}");
 
         if (command.Arguments.Count > 0)
         {
@@ -120,7 +120,8 @@ public static class HelpSystem
         string arguments = string.Join(' ', command.Arguments.Select(e => $"<{e.Name}>"));
         if (command.Arguments.Any(e => e.Params)) arguments += "...";
 
-        string flags = includeFlags ? string.Join(' ', command.Flags.Select(e => {
+        string flags = includeFlags ? string.Join(' ', command.Flags.Select(e =>
+        {
             string name = e.Name;
 
             if (e.ShortName != null)
@@ -128,7 +129,7 @@ public static class HelpSystem
 
             if (e.IsSwitch) return $"[{name}]";
 
-            string value = e.ValueName == null ? $"<{e.Name[2 ..]}>" : $"<{e.ValueName}>";
+            string value = e.ValueName == null ? $"<{e.Name[2..]}>" : $"<{e.ValueName}>";
             if (e.Params) value += "...";
 
             if (e.ShortName != null)
@@ -151,7 +152,7 @@ public static class HelpSystem
         {
             if (command != parent
                 && command.Route.Length >= parent.Route.Length
-                && command.Route[.. parent.Route.Length].SequenceEqual(parent.Route)
+                && command.Route[..parent.Route.Length].SequenceEqual(parent.Route)
                 && command.Executable)
                 commands.Add(command);
         }

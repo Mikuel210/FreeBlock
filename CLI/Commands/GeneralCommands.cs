@@ -37,15 +37,14 @@ public static class GeneralCommands
             .OrderBy(e => e.Type)
             .ToArray();
 
-        // showAllLists pulls list entries out of "Active entries" into their own "Block lists" section, so
-        // they are not shown twice. When it is false, lists are reported inline via their entries.
+        // Remove lists from entries section when showAllLists is enabled
         if (showAllLists) entries = [.. entries.Where(e => e.Type != EntryType.List)];
 
         var lists = state.Lists.ToArray();
         if (!showAllLists) lists = [];
 
         var schedules = state.Schedules.ToArray();
-        if (!showAllSchedules && showWarningSchedules)  schedules = [.. schedules.Where(e => e.Active || e.InWarningPeriod)];
+        if (!showAllSchedules && showWarningSchedules) schedules = [.. schedules.Where(e => e.Active || e.InWarningPeriod)];
         if (!showAllSchedules && !showWarningSchedules) schedules = [.. schedules.Where(e => e.Active)];
 
         // Sections
@@ -107,7 +106,8 @@ public static class GeneralCommands
             Console.WriteLine(showAllSchedules ? "Schedules:" : "Active schedules:");
             printedSection = true;
 
-            schedules.Sort((a, b) => {
+            schedules.Sort((a, b) =>
+            {
                 int aPriority = a.Active ? 0 : (a.InWarningPeriod ? 1 : 2);
                 int bPriority = b.Active ? 0 : (b.InWarningPeriod ? 1 : 2);
                 return aPriority.CompareTo(bPriority);
@@ -224,7 +224,8 @@ public static class GeneralCommands
                 if (!list.Entries.Contains(entry)) continue;
                 var listEntry = new Entry(EntryType.List, list.Name);
 
-                ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a list: {list.Name}"); // TODO: check if you're unblocking that list as well
+                // TODO: check if you're unblocking that list as well
+                ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a list: {list.Name}");
                 writeLine = true;
             }
 
