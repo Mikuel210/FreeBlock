@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using static CLI.InvokeHelpers;
 using Core;
+using Daemon;
 
 namespace CLI;
 
@@ -8,7 +10,7 @@ public static class ListCommands
 
     public static async Task<int> ShowStatus()
     {
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
         var lists = state.Lists.ToArray();
 
         if (lists.Length == 0)
@@ -30,7 +32,9 @@ public static class ListCommands
 
     public static async Task<int> ShowList(ListArgument argument)
     {
-        Console.WriteLine(await ConnectionManager.Connection!.InvokeAsync<string>("GetListContentsAsync", argument.Value!));
+        var result = (await Invoke<string>(nameof(CommunicationHub.GetListContentsAsync), argument.Value!)).Unwrap();
+        Console.WriteLine(result);
+
         return 0;
     }
 
@@ -41,7 +45,7 @@ public static class ListCommands
         (List<Entry> entries, string contents) = await ConsoleUtils.EditEntries(list: list.Name);
         list.Entries = entries;
 
-        await ConnectionManager.Connection!.InvokeAsync("AddListAsync", list, contents);
+        (await Invoke(nameof(CommunicationHub.AddListAsync), list, contents)).Unwrap();
         Console.WriteLine($"Added list: {list.Name}");
 
         return 0;
@@ -51,10 +55,10 @@ public static class ListCommands
     {
         var list = argument.Value!;
         var previousEntries = list.Entries;
-        string previousContents = await ConnectionManager.Connection!.InvokeAsync<string>("GetListContentsAsync", list);
+        string previousContents = (await Invoke<string>(nameof(CommunicationHub.GetListContentsAsync), list)).Unwrap();
 
         (List<Entry> entries, string contents) = await ConsoleUtils.EditEntries(previousContents, list.Name);
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
 
         if (list.IsActive(state))
         {
@@ -82,7 +86,7 @@ public static class ListCommands
 
         list.Entries = entries;
 
-        await ConnectionManager.Connection!.InvokeAsync("EditListAsync", list, contents);
+        (await Invoke(nameof(CommunicationHub.EditListAsync), list, contents)).Unwrap();
         Console.WriteLine($"Updated list: {list.Name}");
 
         return 0;
@@ -94,7 +98,7 @@ public static class ListCommands
         string oldName = list.Name;
         string newName = nameArgument.Value!;
 
-        await ConnectionManager.Connection!.InvokeAsync("RenameListAsync", list, newName);
+        (await Invoke(nameof(CommunicationHub.RenameListAsync), list, newName)).Unwrap();
         Console.WriteLine($"Renamed list: {oldName} -> {newName}");
 
         return 0;
@@ -105,7 +109,7 @@ public static class ListCommands
         var list = argument.Value!;
         var entry = new Entry(EntryType.List, list.Name);
 
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
         string[] blockReasons = ConsoleUtils.GetBlockReasons(state, entry);
 
         // Check if list is active
@@ -126,6 +130,14 @@ public static class ListCommands
             used = true;
         }
 
+        foreach (var @lock in state.Locks)
+        {
+            if (!@lock.Entries.Contains(entry)) continue;
+
+            ConsoleUtils.Error($"The list is being used by a lock: {@lock.Name}");
+            used = true;
+        }
+
         foreach (var schedule in state.Schedules)
         {
             if (!schedule.Entries.Contains(entry)) continue;
@@ -136,7 +148,7 @@ public static class ListCommands
 
         if (used) return 1;
 
-        await ConnectionManager.Connection!.InvokeAsync("RemoveListAsync", list);
+        (await Invoke(nameof(CommunicationHub.RemoveListAsync), list)).Unwrap();
         Console.WriteLine($"Removed list: {list.Name}");
 
         return 0;

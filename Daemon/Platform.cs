@@ -7,9 +7,9 @@ public static class Platform
 
     // Paths
     private static readonly string _userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    private static string _configDirectoryRelative = null!;  // Set in static constructor
+    private static string _configDirectoryRelative = null!;
 
-    public static string HostsPath { get; private set; } = null!;  // Set in static constructor
+    public static string HostsPath { get; private set; } = null!;
     public static string ConfigDirectory => Path.Join(_userDirectory, _configDirectoryRelative);
     public static string ConfigFile => Path.Join(ConfigDirectory, "config.json");
     public static string StateFile => Path.Join(ConfigDirectory, "state.json");
@@ -18,16 +18,16 @@ public static class Platform
     public static string ListsDirectory => Path.Join(ConfigDirectory, "lists");
 
     // Commands
-    public static CommandAction FlushDns { get; private set; } = null!;  // Set in static constructor
-    public static CommandAction Uninstall { get; private set; } = null!;  // Set in static constructor
-    public static CommandAction RemovePreferences { get; private set; } = null!;  // Set in static constructor
-    public static Func<string[]> GetCurrentUsers { get; private set; } = null!;  // Set in static constructor
+    public static CommandAction FlushDns { get; private set; } = null!;
+    public static CommandAction Uninstall { get; private set; } = null!;
+    public static CommandAction RemovePreferences { get; private set; } = null!;
+    public static Func<string[]> GetCurrentUsers { get; private set; } = null!;
 
-    public static Action<string, string, string> SendNotification = null!;  // Set in static constructor
+    public static Action<string, string, string> SendNotification = null!;
 
     // Windows notifications
-    #if OS_WINDOWS
-    // TODO: i don't think this worked at all
+    // TODO: This doesn't work at all
+#if OS_WINDOWS
         [DllImport("wtsapi32.dll", SetLastError = true)]
         private static extern bool WTSSendMessage(
             IntPtr hServer,
@@ -41,24 +41,7 @@ public static class Platform
             out int pResponse,
             bool bWait
         );
-    #endif
-
-    /// <summary>An <see cref="IPlatform"/> view of this static configuration, for the seams.</summary>
-    public static readonly IPlatform Default = new StaticPlatform();
-
-    private sealed class StaticPlatform : IPlatform
-    {
-        public string HostsPath => Platform.HostsPath;
-        public string ConfigDirectory => Platform.ConfigDirectory;
-        public string ConfigFile => Platform.ConfigFile;
-        public string StateFile => Platform.StateFile;
-        public string ListsDirectory => Platform.ListsDirectory;
-        public CommandAction FlushDns => Platform.FlushDns;
-        public CommandAction Uninstall => Platform.Uninstall;
-        public CommandAction RemovePreferences => Platform.RemovePreferences;
-        public Func<string[]> GetCurrentUsers => Platform.GetCurrentUsers;
-        public Action<string, string, string> SendNotification => Platform.SendNotification;
-    }
+#endif
 
     static Platform()
     {
@@ -78,9 +61,6 @@ public static class Platform
         FlushDns = new([new("resolvectl", "flush-caches"), new("systemd-resolve", "--flush-caches")]);
         GetCurrentUsers = GetLinuxUsers;
 
-        // runuser needs a user NAME. /run/user only lists numeric UIDs, and "runuser -l 1000" fails
-        // with "user 1000 does not exist" — so Linux notifications have always been silently broken.
-        // The owner of the session directory is the user the session belongs to.
         static string[] GetLinuxUsers()
         {
             List<string> users = [];
@@ -104,9 +84,7 @@ public static class Platform
 
         static string GetUserName(string uid)
         {
-            // runuser needs a user NAME; /etc/passwd is the authoritative UID -> name map.
             string name = GetUserNameFromPasswd(uid);
-
             if (!string.IsNullOrEmpty(name)) return name;
 
             throw new InvalidOperationException($"No user name for UID {uid}");
@@ -184,7 +162,8 @@ public static class Platform
         FlushDns = new([new("dscacheutil", "-flushcache"), new("killall", "-HUP mDNSResponder")]);
         var serviceFile = Path.Join(_userDirectory, "Library/LaunchDaemons/com.freeblock.daemon.plist");
 
-        GetCurrentUsers = () => {
+        GetCurrentUsers = () =>
+        {
             var process = new Process();
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
@@ -244,15 +223,16 @@ public static class Platform
         FlushDns = new([new("ipconfig", "/flushdns")]);
         GetCurrentUsers = () => [];
 
-        SendNotification = (_, title, body) => {
-            #if OS_WINDOWS
+        SendNotification = (_, title, body) =>
+        {
+#if OS_WINDOWS
                 WTSSendMessage(
                     IntPtr.Zero, 1,
                     title, title.Length * 2,
                     body, body.Length * 2,
                     0, 0, out int _, false
                 );
-            #endif
+#endif
         };
 
         Uninstall = new([

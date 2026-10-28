@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
-using System.Text.Json;
+using static CLI.InvokeHelpers;
 using Core;
+using Daemon;
 
 namespace CLI;
 
@@ -15,60 +16,65 @@ public static class ConfigSystem
     public static void Register(string key, ConfigOption configOption)
         => _options.Add(key, configOption);
 
-    public static async Task<object?> Get(string key)
-    {
-        try
-        {
-            var jsonElement = await ConnectionManager.Connection!.InvokeAsync<JsonElement>("GetConfig", _options[key].FieldName);
-            var type = ConfigOptions.GetFieldType(key);
+    public static async Task<ConfigSchema> GetAll()
+        => (await Invoke<ConfigSchema>(nameof(CommunicationHub.GetConfigAsync))).Unwrap();
 
-            return jsonElement.Deserialize(type);
-        }
-        catch
+    public static async Task<Dictionary<string, object?>> GetDictionary()
+    {
+        string[] fieldNames = [.. _options.Select(e => e.Value.FieldName)];
+        var values = await GetAll();
+        var keys = new Dictionary<string, string>();
+
+        foreach (var fieldName in values.GetType().GetFields().Select(e => e.Name))
         {
-            return default;
+            var cliKey = _options.Keys.FirstOrDefault(k => _options[k].FieldName == fieldName);
+            if (cliKey is null) continue;
+
+            keys[fieldName] = cliKey;
         }
+
+        // Re-key the daemon response from field names to the CLI keys used everywhere else.
+        return keys.Keys.Select(e => new KeyValuePair<string, object?>(
+            keys[e],
+            values.GetType().GetField(e)?.GetValue(values))
+        ).ToDictionary();
     }
 
     public static async Task<T?> Get<T>(string key)
     {
+        var options = await GetDictionary();
+
         try
         {
-            var jsonElement = await ConnectionManager.Connection!.InvokeAsync<JsonElement>("GetConfig", _options[key].FieldName);
-            return jsonElement.Deserialize<T>();
+            return (T?)options[key];
         }
         catch
         {
-            return default;
+            new Failure("Key not found in options").Unwrap();
         }
+
+        throw new NotImplementedException();
     }
 
-    public static async Task<Dictionary<string, object?>> GetAll()
+    public static async Task SetAll(ConfigSchema values)
+        => (await Invoke(nameof(CommunicationHub.SetConfigAsync), values)).Unwrap();
+
+    public static async Task Set(string key, object? value)
     {
-        string[] fieldNames = [.. _options.Select(e => e.Value.FieldName)];
-        var options = await ConnectionManager.Connection!.InvokeAsync<Dictionary<string, object?>>("GetBatchConfig", fieldNames);
-
-        // FirstOrDefault + skip: the daemon may report a field this CLI registry does not know about
-        // (a downgrade), which must not take down the whole command.
-        var keys = new Dictionary<string, string>();
-
-        foreach (var pair in options)
+        try
         {
-            var cliKey = _options.Keys.FirstOrDefault(k => _options[k].FieldName == pair.Key);
-            if (cliKey is null) continue;
+            string schemaKey = _options[key].FieldName;
+            var values = await GetAll();
+            var field = values.GetType().GetField(schemaKey)!;
 
-            keys[pair.Key] = cliKey;
+            field.SetValue(values, value);
+            await SetAll(values);
         }
-
-        // Re-key the daemon response from field names to the CLI keys used everywhere else.
-        return options
-            .Where(e => keys.ContainsKey(e.Key))
-            .Select(e => new KeyValuePair<string, object?>(keys[e.Key], e.Value))
-            .ToDictionary();
+        catch
+        {
+            new Failure("Key not found in options").Unwrap();
+        }
     }
-
-    public static Task Set(string key, object? value)
-        => ConnectionManager.Connection!.InvokeAsync("SetConfig", _options[key].FieldName, value);
 
     public static IArgument GetArgument(string key)
         => _options[key].ArgumentFactory();

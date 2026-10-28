@@ -29,14 +29,12 @@ public class JsonFile
         }
         catch (JsonException e)
         {
-            // A corrupt file used to NRE the static constructor of State/Config, which makes the type
-            // permanently unusable in that process — the daemon would then fail to start forever (B2).
-            // Back the corrupt file up and fall back to defaults instead of dying.
+            // Back the corrupt file up and fall back to defaults
             string date = DateTime.Now.ToString("dd-MM-yyyy-HH.mm.ss", CultureInfo.InvariantCulture);
             var backupPath = $"{_path}.{date}.corrupt";
 
             try { File.Move(_path, backupPath); }
-            catch { /* keep going: losing the file beats losing the daemon */ }
+            catch { }
 
             Console.Error.WriteLine($"Corrupt JSON in {_path} backed up to {backupPath}: {e.Message}");
             values = [];
@@ -60,7 +58,12 @@ public class JsonFile
     }
 
     public object? Get(string key, Type type) => _values.SelectToken(key)?.ToObject(type);
-    public T? Get<T>(string key) where T : class => _values.SelectToken(key)?.ToObject<T>();
+
+    public T? Get<T>(string key) where T : class
+        => _values.SelectToken(key)?.ToObject<T>();
+
+    public T GetStruct<T>(string key) where T : struct
+        => _values.SelectToken(key)!.ToObject<T>();
 
     public List<T> GetList<T>(string key)
         => _values[key]?.ToObject<List<JObject>>()?.Select(e => e.ToObject<T>()!).ToList() ?? [];
@@ -68,10 +71,6 @@ public class JsonFile
     public void Set(string key, object value)
         => _values[key] = JToken.FromObject(value);
 
-    /// <summary>
-    /// Writes to a temp file in the same directory and moves it over the target, so a reader never
-    /// sees a half-written file. Same reasoning as the hosts-file write (P3).
-    /// </summary>
     public void Save()
     {
         var directory = Path.GetDirectoryName(_path) ?? throw new InvalidOperationException($"Cannot resolve directory of {_path}");

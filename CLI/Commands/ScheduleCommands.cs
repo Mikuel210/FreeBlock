@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using static CLI.InvokeHelpers;
 using Core;
+using Daemon;
 
 namespace CLI;
 
@@ -8,7 +10,7 @@ public static class ScheduleCommands
 
     public static async Task<int> ShowStatus()
     {
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
         List<Schedule> schedules = [.. state.Schedules];
 
         if (schedules.Count == 0)
@@ -72,7 +74,7 @@ public static class ScheduleCommands
 
         if (schedule.Active && !ConsoleUtils.PromptClose()) return 1;
 
-        await ConnectionManager.Connection!.InvokeAsync("AddScheduleAsync", schedule);
+        (await Invoke(nameof(CommunicationHub.AddScheduleAsync), schedule)).Unwrap();
         Console.WriteLine($"Added schedule: {schedule.Name}");
 
         return 0;
@@ -80,15 +82,16 @@ public static class ScheduleCommands
 
     public static async Task<int> EditSchedule(ScheduleArgument scheduleArgument, List<IFlag> flags)
     {
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
 
+        // Values to modify
         var schedule = scheduleArgument.Value!;
         var previousDuration = schedule.Duration;
         var start = schedule.StartTime;
         var end = schedule.EndTime;
-        List<DayOfWeek> days = [.. schedule.Days];
         var entries = schedule.Entries;
         var options = schedule.Options;
+        List<DayOfWeek> days = [.. schedule.Days];
 
         bool activeOrWarning = schedule.Active || schedule.InWarningPeriod;
         bool changesMade = false;
@@ -119,7 +122,7 @@ public static class ScheduleCommands
 
         if (flags.OfType<ScheduleDaysFlag>().FirstOrDefault() is { } daysFlag)
         {
-            var previousDays = days.OrderBy(x => x).ToList();  // B3: sort before comparing
+            var previousDays = days.OrderBy(x => x).ToList();
 
             if (!activeOrWarning)
             {
@@ -147,8 +150,9 @@ public static class ScheduleCommands
             }
 
         End:
-            days = days.Distinct().ToList();  // B12: remove duplicates before sorting
+            days = [.. days.Distinct()];
             days.Sort();
+
             changesMade = changesMade || !days.SequenceEqual(previousDays);
         }
 
@@ -237,7 +241,7 @@ public static class ScheduleCommands
             Options = options
         };
 
-        await ConnectionManager.Connection!.InvokeAsync("EditScheduleAsync", updatedSchedule);
+        (await Invoke(nameof(CommunicationHub.EditScheduleAsync), updatedSchedule)).Unwrap();
 
         if (changesMade) Console.WriteLine($"Updated schedule: {scheduleArgument.Value.Name}");
         else Console.WriteLine("No changes made");
@@ -251,7 +255,7 @@ public static class ScheduleCommands
         string oldName = schedule.Name;
         string newName = nameArgument.Value!;
 
-        await ConnectionManager.Connection!.InvokeAsync("RenameScheduleAsync", schedule, newName);
+        (await Invoke(nameof(CommunicationHub.RenameScheduleAsync), schedule, newName)).Unwrap();
         Console.WriteLine($"Renamed schedule: {oldName} -> {newName}");
 
         return 0;
@@ -288,7 +292,7 @@ public static class ScheduleCommands
                 if (ConsoleUtils.PromptYesNo("To prevent impulsive choices, you can instead request the ability to remove this schedule in a "
                                             + "window that starts 24h from now and ends 48h from now. Do you want to request it now?", false))
                 {
-                    await ConnectionManager.Connection!.InvokeAsync("RequestScheduleRemovalAsync", schedule);
+                    (await Invoke(nameof(CommunicationHub.RequestScheduleRemovalAsync), schedule)).Unwrap();
                     Console.WriteLine($"Requested schedule removal: {schedule.Name}");
 
                     return 0;
@@ -312,7 +316,7 @@ public static class ScheduleCommands
             // In window: continue
         }
 
-        await ConnectionManager.Connection!.InvokeAsync("RemoveScheduleAsync", schedule);
+        (await Invoke(nameof(CommunicationHub.RemoveScheduleAsync), schedule)).Unwrap();
         Console.WriteLine($"Removed schedule: {schedule.Name}");
 
         return 0;

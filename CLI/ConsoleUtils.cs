@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using static CLI.InvokeHelpers;
 using System.Diagnostics;
 using Core;
+using Daemon;
 
 namespace CLI;
 
@@ -33,7 +35,7 @@ public static class ConsoleUtils
         List<Entry> entries = [];
         Dictionary<int, string> errors = [];
 
-        var lists = await ConnectionManager.Connection!.InvokeAsync<List<List>>("GetListsAsync");
+        var lists = (await ConnectionManager.SafeInvokeAsync<List<List>>(nameof(CommunicationHub.GetListsAsync))).Unwrap();
 
         for (int i = 0; i < lines.Count; i++)
         {
@@ -176,5 +178,32 @@ public static class ConsoleUtils
 
     public static bool PromptClose(bool disableWriteLine = false)
         => PromptYesNo($"This will close all browsers and all blocked apps. Okay to continue?", true, disableWriteLine);
+
+    public static void Unwrap(this Result result)
+    {
+        if (result is Success)
+            return;
+
+        if (result is Failure failure)
+        {
+            Error(failure.Message);
+            Environment.Exit(1);
+            throw new NotImplementedException();
+        }
+    }
+
+    public static T Unwrap<T>(this Result<T> result)
+    {
+        if (result is Success<T> success)
+            return success.Value;
+
+        if (result is Failure<T> failure)
+        {
+            Error(failure.Message);
+            Environment.Exit(1);
+        }
+
+        throw new NotImplementedException();
+    }
 
 }

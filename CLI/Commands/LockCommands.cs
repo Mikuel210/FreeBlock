@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.SignalR.Client;
-using Core;
+using static CLI.InvokeHelpers;
 using Lock = Core.Lock;
+using Core;
+using Daemon;
 
 namespace CLI;
 
@@ -9,7 +11,7 @@ public static class LockCommands
 
     public static async Task<int> ShowStatus()
     {
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
         var locks = state.Locks.ToArray();
 
         if (locks.Length == 0)
@@ -47,7 +49,7 @@ public static class LockCommands
         var prompt = $"This will block the provided entries for {time} and close all browsers and all blocked apps. Okay to continue?";
         if (!ConsoleUtils.PromptYesNo(prompt)) return 1;
 
-        await ConnectionManager.Connection!.InvokeAsync("AddLockAsync", @lock);
+        (await Invoke(nameof(CommunicationHub.AddLockAsync), @lock)).Unwrap();
         Console.WriteLine($"Added lock: {@lock.Name}");
 
         return 0;
@@ -55,8 +57,7 @@ public static class LockCommands
 
     public static async Task<int> EditLock(LockArgument lockArgument, List<IFlag> flags)
     {
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
-
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
         var @lock = lockArgument.Value!;
         bool changesMade = false;
 
@@ -84,8 +85,7 @@ public static class LockCommands
             changesMade = true;
         }
 
-        await ConnectionManager.Connection!.InvokeAsync("EditLockAsync", @lock);
-
+        (await Invoke(nameof(CommunicationHub.EditLockAsync), @lock)).Unwrap();
         if (changesMade) Console.WriteLine($"Updated lock: {@lock.Name}");
         else Console.WriteLine("No changes made");
 
@@ -98,7 +98,7 @@ public static class LockCommands
         string oldName = @lock.Name;
         string newName = nameArgument.Value!;
 
-        await ConnectionManager.Connection!.InvokeAsync("RenameLockAsync", @lock, newName);
+        (await Invoke(nameof(CommunicationHub.RenameLockAsync), @lock, newName)).Unwrap();
         Console.WriteLine($"Renamed lock: {oldName} -> {newName}");
 
         return 0;

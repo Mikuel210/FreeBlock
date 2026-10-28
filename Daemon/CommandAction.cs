@@ -6,10 +6,6 @@ namespace Daemon;
 public record CommandAction(List<KeyValuePair<string, string>> Commands, Dictionary<string, string>? Environment = null)
 {
 
-    /// <summary>
-    /// Runs every command in sequence, waiting for each to exit. Returns the concatenated output and
-    /// the exit codes, so a failure is visible to the caller instead of silently discarded (D7).
-    /// </summary>
     public async Task<(int[] ExitCodes, string Output)> Run(params object?[] args)
     {
         int[] exitCodes = new int[Commands.Count];
@@ -29,9 +25,6 @@ public record CommandAction(List<KeyValuePair<string, string>> Commands, Diction
                 output.AppendLine(stdout);
                 output.AppendLine();
             }
-
-            if (exitCode != 0)
-                output.AppendLine($"[FreeBlock] '{command}' exited with code {exitCode}");
         }
 
         return (exitCodes, output.ToString());
@@ -59,7 +52,6 @@ public record CommandAction(List<KeyValuePair<string, string>> Commands, Diction
 
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
             var stderrTask = process.StandardError.ReadToEndAsync();
-
             await process.WaitForExitAsync();
 
             var stdout = await stdoutTask;

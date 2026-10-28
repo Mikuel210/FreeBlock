@@ -55,7 +55,7 @@ CommandSystem.Register(new Command(
     Description: "Manage lists",
     Arguments: [],
     Flags: [],
-    Run: () => {},
+    Run: () => { },
     Executable: false
 ));
 
@@ -103,7 +103,7 @@ CommandSystem.Register(new Command(
         new ListArgument("old", "The old name of the list"),
         new AddListArgument("new", "The new name of the list")
     ],
-    Flags:[],
+    Flags: [],
     Run: ListCommands.RenameList
 ));
 
@@ -125,7 +125,7 @@ CommandSystem.Register(new Command(
     Description: "Manage locks",
     Arguments: [],
     Flags: [],
-    Run: () => {},
+    Run: () => { },
     Executable: false
 ));
 
@@ -193,7 +193,7 @@ CommandSystem.Register(new Command(
     Description: "Manage schedules",
     Arguments: [],
     Flags: [],
-    Run: () => {},
+    Run: () => { },
     Executable: false
 ));
 
@@ -275,7 +275,7 @@ CommandSystem.Register(new Command(
     Description: "Configure FreeBlock",
     Arguments: [],
     Flags: [],
-    Run: () => {},
+    Run: () => { },
     Executable: false
 ));
 
@@ -319,7 +319,7 @@ CommandSystem.Register(new Command(
 ConfigSystem.Register(
     "schedule.defaultWarningTime",
     new ConfigOption(
-        ConfigOptions.FieldNames["schedule.defaultWarningTime"],
+        nameof(ConfigSchema.defaultWarningTime),
         "The default warning time for new schedules",
         () => new TimeSpanArgument("value", string.Empty)
     )
@@ -328,7 +328,7 @@ ConfigSystem.Register(
 ConfigSystem.Register(
     "status.showAllLists",
     new ConfigOption(
-        ConfigOptions.FieldNames["status.showAllLists"],
+        nameof(ConfigSchema.showAllLists),
         "Whether to show all lists in status or just active ones",
         () => new BoolArgument("value", string.Empty)
     )
@@ -337,7 +337,7 @@ ConfigSystem.Register(
 ConfigSystem.Register(
     "status.showAllSchedules",
     new ConfigOption(
-        ConfigOptions.FieldNames["status.showAllSchedules"],
+        nameof(ConfigSchema.showAllSchedules),
         "Whether to show all schedules in status or just active ones",
         () => new BoolArgument("value", string.Empty)
     )
@@ -346,7 +346,7 @@ ConfigSystem.Register(
 ConfigSystem.Register(
     "status.showWarningPeriodSchedules",
     new ConfigOption(
-        ConfigOptions.FieldNames["status.showWarningPeriodSchedules"],
+        nameof(ConfigSchema.showWarningPeriodSchedules),
         "Whether to show schedules in warning period, in case status.showAllSchedules is false",
         () => new BoolArgument("value", string.Empty)
     )

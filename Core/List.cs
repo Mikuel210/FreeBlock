@@ -6,10 +6,6 @@ public class List : IName
     public string Name { get; set; } = string.Empty;
     public List<Entry> Entries { get; set; } = [];
 
-    /// <summary>
-    /// Whether this list is currently contributing to blocking. <paramref name="visited"/> tracks the
-    /// lists on the current resolution path so a cycle terminates instead of recursing forever (C3).
-    /// </summary>
     public bool IsActive(StateSnapshot state, HashSet<string>? visited = null)
     {
         visited ??= [];

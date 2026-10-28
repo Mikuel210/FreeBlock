@@ -5,7 +5,7 @@ public static class ConfigCommands
 
     public static async Task<int> ShowStatus()
     {
-        var options = await ConfigSystem.GetAll();
+        var options = await ConfigSystem.GetDictionary();
         ConsoleUtils.PrintDictionary(options);
 
         return 0;
@@ -13,7 +13,7 @@ public static class ConfigCommands
 
     public static async Task<int> Get(ConfigKeyArgument keyArgument)
     {
-        Console.WriteLine(await ConfigSystem.Get(keyArgument.Value!));
+        Console.WriteLine(await ConfigSystem.Get<object?>(keyArgument.Value!));
         return 0;
     }
 

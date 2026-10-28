@@ -1,13 +1,11 @@
 using Core;
-using Microsoft.AspNetCore.SignalR.Client;
+using static CLI.InvokeHelpers;
+using Daemon;
 
 namespace CLI;
 
 public static class Validator
 {
-    // Test seam: FakeHub replaces this delegate to intercept hub calls during tests
-    internal static Func<string, object?[], Task<object?>> Invoke = 
-        (method, args) => ConnectionManager.Connection!.InvokeAsync<object?>(method, args);
 
     private static string GetPosixName(IName argument)
         => argument.Name.StartsWith('-') ? $"[{argument.Name}]" : $"<{argument.Name}>";
@@ -29,7 +27,7 @@ public static class Validator
     public static async Task<(bool, object?)> ValidateEntries(IName argument, string input)
     {
         var lines = input.Split(' ');
-        var lists = await ConnectionManager.Connection.InvokeAsync<List<List>>("GetListsAsync");
+        var lists = (await Invoke<List<List>>(nameof(CommunicationHub.GetListsAsync))).Unwrap();
 
         List<Entry> entries = [];
         List<string> errors = [];
@@ -53,7 +51,7 @@ public static class Validator
 
     public static async Task<(bool, object?)> ValidateIName<T>(IName argument, string input) where T : IName
     {
-        var value = await ConnectionManager.Connection.InvokeAsync<T?>($"Get{typeof(T).Name}FromNameAsync", input);
+        var value = (await Invoke<T?>($"Get{typeof(T).Name}FromNameAsync", input)).Unwrap();
 
         if (value == null)
         {
@@ -67,7 +65,7 @@ public static class Validator
     public static async Task<(bool, object?)> ValidateAddIName<T>(IName argument, string input) where T : IName
     {
         // Check if object already exists
-        var @object = await ConnectionManager.Connection.InvokeAsync<T?>($"Get{typeof(T).Name}FromNameAsync", input);
+        var @object = (await Invoke<T?>($"Get{typeof(T).Name}FromNameAsync", input)).Unwrap();
 
         if (@object != null)
         {

@@ -6,10 +6,6 @@ public static class Extensions
 {
     const int MAX_DEPTH = 20;
 
-    /// <param name="visited">Lists on the current resolution path. A repeat visit means a cycle, which is
-    /// a client error, not a reason to kill the process (C3).</param>
-    /// <param name="resolved">Entries already produced. Two lists pointing at the same entry yield it once
-    /// (B3).</param>
     public static List<Entry> ResolveLists(this List<Entry> entries, Func<string, List?> listFromName,
         HashSet<string>? visited = null, HashSet<Entry>? resolved = null, int depth = 0)
     {
@@ -49,7 +45,7 @@ public static class Extensions
         error = null;
 
         if (line.IsWhiteSpace() || line.StartsWith("#")) return false;
-        var lineWithoutPrefix = line[1 ..].Trim();
+        var lineWithoutPrefix = line[1..].Trim();
 
         if (line.StartsWith("+"))
         {
@@ -75,16 +71,12 @@ public static class Extensions
 
             if (list != null)
             {
-                // Only cycle-check entries reachable from the list being edited. The traceback starts at
-                // this list so a reference back to it is the cycle (C3).
                 if (entry.IsRecursive(name => lists.FirstOrDefault(e => e.Name == name), [list]))
                 {
                     error = $"Recursive list entry was removed: {lineWithoutPrefix}";
                     return false;
                 }
 
-                // A reference to a list that does not exist cannot be resolved later: drop it now (B6).
-                // B1: Compare list names case-insensitively to match Entry.Equals
                 if (!lists.Any(e => e.Name.Equals(lineWithoutPrefix, StringComparison.OrdinalIgnoreCase)))
                 {
                     error = $"Missing list entry was removed: {lineWithoutPrefix}";
@@ -103,7 +95,7 @@ public static class Extensions
     {
         url = url.Trim();
 
-        // Schemes are case-insensitive (RFC 3986 §3.1) — HTTPS://example.com is the same site.
+        // Schemes are case-insensitive
         if (url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) url = url[8..];
         else if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)) url = url[7..];
 

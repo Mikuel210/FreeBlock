@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using static CLI.InvokeHelpers;
 using Core;
+using Daemon;
 
 namespace CLI;
 
@@ -24,10 +26,11 @@ public static class GeneralCommands
     public static async Task<int> ShowStatus()
     {
         // Get state and configuration
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
-        bool showAllLists = await ConfigSystem.Get<bool>("status.showAllLists");
-        bool showAllSchedules = await ConfigSystem.Get<bool>("status.showAllSchedules");
-        bool showWarningSchedules = await ConfigSystem.Get<bool>("status.showWarningPeriodSchedules");
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
+        var values = await ConfigSystem.GetAll();
+        var showAllLists = values.showAllLists;
+        var showAllSchedules = values.showAllSchedules;
+        var showWarningSchedules = values.showWarningPeriodSchedules;
 
         // Get blocked entries, lists and schedules
         var entries = state.Block
@@ -122,7 +125,7 @@ public static class GeneralCommands
 
     public static async Task<int> Uninstall()
     {
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
+        var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
 
         if (state.Block.Count > 0 ||
             state.Locks.SelectMany(e => e.Entries).Count() > 0 ||
@@ -139,9 +142,9 @@ public static class GeneralCommands
         }
 
         if (ConsoleUtils.PromptYesNo("Remove user data and preferences?", false))
-            await ConnectionManager.Connection!.InvokeAsync("RemovePreferencesAsync");
+            (await Invoke(nameof(CommunicationHub.RemovePreferencesAsync))).Unwrap();
 
-        await ConnectionManager.Connection!.InvokeAsync("UninstallAsync");
+        (await Invoke(nameof(CommunicationHub.UninstallAsync))).Unwrap();
         Console.WriteLine("Uninstalled successfully");
 
         return 0;
@@ -149,11 +152,10 @@ public static class GeneralCommands
 
     public static async Task<int> Block(EntriesArgument argument)
     {
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
-        var entries = argument.Value!;
-
+        StateSnapshot state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
         bool allAlreadyActive = true;
         bool writeLine = false;
+        var entries = argument.Value!;
 
         foreach (var entry in entries)
         {
@@ -194,7 +196,7 @@ public static class GeneralCommands
 
         if (writeLine) Console.WriteLine();
         if (!allAlreadyActive && !ConsoleUtils.PromptClose()) return 1;
-        await ConnectionManager.Connection!.InvokeAsync("BlockAsync", entries);
+        (await Invoke(nameof(CommunicationHub.BlockAsync), entries)).Unwrap();
 
         if (entries.Count == 1) Console.WriteLine($"Enabled manual block for entry: {entries[0].ToEntryString()}");
         else Console.WriteLine($"Enabled manual block for entries");
@@ -204,10 +206,9 @@ public static class GeneralCommands
 
     public static async Task<int> Unblock(EntriesArgument argument)
     {
-        StateSnapshot state = await ConnectionManager.Connection!.InvokeAsync<StateSnapshot>("GetSnapshotAsync");
-        var entries = argument.Value!;
-
+        StateSnapshot state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
         bool writeLine = false;
+        var entries = argument.Value!;
 
         foreach (var entry in entries)
         {
@@ -247,7 +248,7 @@ public static class GeneralCommands
         }
 
         if (writeLine) Console.WriteLine();
-        await ConnectionManager.Connection!.InvokeAsync("UnblockAsync", entries);
+        (await Invoke(nameof(CommunicationHub.UnblockAsync), entries)).Unwrap();
 
         if (entries.Count == 1) Console.WriteLine($"Disabled manual block for entry: {entries[0].ToEntryString()}");
         else Console.WriteLine($"Disabled manual block for entries");

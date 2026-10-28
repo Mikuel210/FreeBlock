@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Core;
 using Lock = Core.Lock;
-using System.Text.Json;
-using System.Reflection;
 
 namespace Daemon;
 
@@ -30,21 +28,19 @@ public class CommunicationHub : Hub
 
     public async Task AddListAsync(List list, string contents)
     {
-        // B5: Update in-memory state first, then persist both files (state is source of truth)
         State.Lists.Add(list);
         State.Save();
-        
+
         WriteFile(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"), contents);
     }
 
     public async Task EditListAsync(List list, string contents)
     {
-        // B5: Update in-memory state first, then persist both files
         var localList = GetLocalList(list);
         localList.Entries = list.Entries;
-        
-        await ApplyChanges();  // This calls State.Save()
-        
+
+        await ApplyChanges();
+
         WriteFile(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"), contents);
     }
 
@@ -81,7 +77,7 @@ public class CommunicationHub : Hub
                     lines[i] = $"@{newName}";
             }
 
-            WriteFile(path, string.Join('\n', lines));  // C2: was string.Join('\n', path)
+            WriteFile(path, string.Join('\n', lines));
         }
 
         // Change name
@@ -93,18 +89,10 @@ public class CommunicationHub : Hub
 
     public async Task RemoveListAsync(List list)
     {
-        var entry = new Entry(EntryType.List, list.Name);
-
-        // A lock referencing this list would resolve to a dangling entry on the next tick (B6).
-        var referencingLock = State.Locks.FirstOrDefault(e => e.Entries.Contains(entry));
-        if (referencingLock != null)
-            throw new InvalidOperationException($"The list is being used by a lock: {referencingLock.Name}");
-
-        File.Delete(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
-
         var localList = GetLocalList(list);
         State.Lists.Remove(localList);
 
+        File.Delete(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
         await ApplyChanges();
     }
 
@@ -185,48 +173,13 @@ public class CommunicationHub : Hub
 
     // Config
 
-    public Task<object?> GetConfig(string fieldName)
+    public async Task<ConfigSchema> GetConfigAsync()
+        => Config.GetAll();
+
+    public async Task SetConfigAsync(ConfigSchema values)
     {
-        var field = typeof(Config.DefaultValue).GetField(fieldName)
-            ?? throw new ArgumentException($"Unknown configuration key: {fieldName}", nameof(fieldName));
-
-        var type = field.FieldType;
-        return Task.FromResult(Config.Get(fieldName, type));
-    }
-
-    public async Task<Dictionary<string, object?>> GetBatchConfig(string[] fieldName)
-    {
-        Dictionary<string, object?> output = [];
-
-        foreach (var key in fieldName)
-            output.Add(key, await GetConfig(key));
-
-        return output;
-    }
-
-    public Task SetConfig(string fieldName, JsonElement value)
-    {
-        var field = typeof(Config.DefaultValue).GetField(fieldName)
-            ?? throw new ArgumentException($"Unknown configuration key: {fieldName}", nameof(fieldName));
-
-        var typedValue = value.Deserialize(field.FieldType);
-        if (typedValue == null)
-            throw new ArgumentException($"Invalid value for {fieldName}", nameof(value));
-
-        // B7: Validate config values before applying them
-        if (typedValue is TimeSpan ts)
-        {
-            if (ts < TimeSpan.Zero)
-                throw new ArgumentException($"{fieldName} cannot be negative", nameof(value));
-            
-            if (fieldName == nameof(Config.DefaultValue.defaultWarningTime) && ts > TimeSpan.FromHours(24))
-                throw new ArgumentException($"{fieldName} cannot exceed 24 hours", nameof(value));
-        }
-
-        Config.Set(fieldName, typedValue);
+        Config.SetAll(values);
         Config.Save();
-
-        return Task.CompletedTask;
     }
 
 
@@ -234,23 +187,19 @@ public class CommunicationHub : Hub
 
     public async Task UninstallAsync()
     {
-        // B9: Use atomic write to avoid leaving a corrupted hosts file if process dies mid-write
-        var hostsBackup = Config.Get<string>(nameof(Config.DefaultValue.hosts));
-        if (hostsBackup is null)
-        {
-            throw new HubException("Uninstall failed: no hosts backup found in config. Daemon remains running.");
-        }
-        
+        var hostsBackup = Config.Get<string>(nameof(ConfigSchema.hosts));
+
         try
         {
-            Blocker.WriteHostsFile(hostsBackup);
+            if (hostsBackup != null)
+                Blocker.WriteHostsFile(hostsBackup);
         }
         catch (Exception e)
         {
             Console.WriteLine($"Failed to restore hosts file during uninstall: {e}");
             throw new HubException("Uninstall failed: could not restore hosts file. Daemon remains running.");
         }
-        
+
         await Platform.Uninstall.Run();
     }
 
