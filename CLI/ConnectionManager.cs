@@ -30,7 +30,7 @@ public static class ConnectionManager
     {
         try
         {
-            await Connection!.InvokeAsync(method, args);
+            await Connection!.InvokeCoreAsync(method, args);
             return new Success();
         }
         catch (Exception e)

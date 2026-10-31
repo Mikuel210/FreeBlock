@@ -200,7 +200,9 @@ public class CommunicationHub : Hub
             throw new HubException("Uninstall failed: could not restore hosts file. Daemon remains running.");
         }
 
-        await Platform.Uninstall.Run();
+        var (exitCodes, output) = await Platform.Uninstall.Run();
+        if (exitCodes.Any(code => code != 0))
+            throw new HubException($"Uninstall failed: {output.Trim()}");
     }
 
     public async Task RemovePreferencesAsync() => await Platform.RemovePreferences.Run();

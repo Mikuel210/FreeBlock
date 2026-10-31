@@ -308,7 +308,7 @@ public static class ScheduleCommands
                 else ConsoleUtils.Error($"Removing schedules while in the warning period is not allowed: {schedule.Name}");
 
                 var windowStart = ((DateTime)schedule.RemovalRequestTime!).AddDays(1);
-                ConsoleUtils.Note($"The removal of this schedule is already requested. The window starts {windowStart}");
+                ConsoleUtils.Note($"The removal of this schedule is already requested. The window starts {windowStart}.");
 
                 return 1;
             }

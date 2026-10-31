@@ -133,7 +133,7 @@ public static class ConsoleUtils
         {
             var spaceString = new string(' ', spaces - keyValue.Key.Length);
 
-            Console.ForegroundColor = ConsoleColor.DarkBlue;
+            Console.ForegroundColor = ConsoleColor.Blue;
             Console.Write($"{keyValue.Key}{spaceString}");
             Console.ResetColor();
             Console.WriteLine(keyValue.Value);

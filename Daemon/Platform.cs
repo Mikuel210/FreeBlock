@@ -131,16 +131,15 @@ public static class Platform
                 Console.Error.WriteLine($"Linux notification failed for user '{user}': {output.Trim()}");
         };
 
+        // Run cleanup outside this service, after the hub has acknowledged the request.
+        // Stopping ourselves inline terminates both the RPC and the remaining commands.
         Uninstall = new([
             new (
-                "systemctl",
-                "stop freeblock"
-            ),
-            new (
-                "rm",
-                "/usr/bin/freeblock " +
-                "/usr/bin/freeblockd " +
-                $"/etc/systemd/system/freeblock.service"
+                "systemd-run",
+                "--on-active=2s --timer-property=AccuracySec=100ms --collect --unit=freeblock-uninstall " +
+                "/bin/sh -c \"systemctl disable --now freeblock; " +
+                "rm -f /usr/bin/freeblock /usr/bin/freeblockd /etc/systemd/system/freeblock.service; " +
+                "systemctl daemon-reload\""
             )
         ]);
 
