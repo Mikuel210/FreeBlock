@@ -4,39 +4,101 @@ namespace Daemon;
 
 public static class NotificationManager
 {
+    public static void Update() => Update(DateTime.Now);
 
-    public static void Update()
+    public static void Update(DateTime now)
     {
         foreach (var schedule in State.Schedules)
         {
-            if (schedule.Active) continue;
-            if (!schedule.InWarningPeriod) continue;
+            // Find the occurrence to notify
+            DateTime? occurrence = null;
+            bool started = schedule.Options.WarningTime == TimeSpan.Zero;
 
-            // The most recent occurrence of the (possibly wrapped) warning start at or before now
-            var warningStart = schedule.StartTime.Add(-schedule.Options.WarningTime);
-            var boundary = DateTime.Today.Add(warningStart.ToTimeSpan());
-            if (boundary > DateTime.Now) boundary = boundary.AddDays(-1);
+            if (started)
+            {
+                if (!schedule.ActiveAt(now)) continue;
 
+                var start = now.Date.Add(schedule.StartTime.ToTimeSpan());
+                occurrence = start > now ? start.AddDays(-1) : start;
+            }
+            else
+            {
+                if (schedule.ActiveAt(now) || schedule.Options.WarningTime < TimeSpan.Zero) continue;
+
+                // The next selected start is at most seven days away, regardless of warning length
+                for (int offset = 0; offset <= 7; offset++)
+                {
+                    var candidate = now.Date.AddDays(offset).Add(schedule.StartTime.ToTimeSpan());
+
+                    if (candidate <= now || !schedule.Days.Contains(candidate.DayOfWeek))
+                        continue;
+
+                    if (candidate - now <= schedule.Options.WarningTime)
+                        occurrence = candidate;
+
+                    break;
+                }
+            }
+
+            if (occurrence is not DateTime startTime) continue;
+
+            // Skip notifications already sent
+            var boundary = started ? startTime : startTime.Subtract(schedule.Options.WarningTime);
             if (schedule.LastNotificationTime is DateTime last && last >= boundary) continue;
 
-            schedule.LastNotificationTime = DateTime.Now;
+            // Send the notification
+            string title = started ? $"Schedule started: {schedule.Name}" : $"Schedule starting soon: {schedule.Name}";
+            string body = started ? "All browsers and all blocked apps have closed" :
+                $"All browsers and all blocked apps will close in {(startTime - now).ToNaturalLanguage()}";
 
-            string title = schedule.Options.WarningTime == TimeSpan.Zero ?
-                $"Schedule started: {schedule.Name}" :
-                $"Schedule starting soon: {schedule.Name}";
+            if (!TryNotify(title, body)) continue;
 
-            string body = schedule.Options.WarningTime == TimeSpan.Zero ?
-                "All browsers and all blocked apps have closed" :
-                $"All browsers and all blocked apps will close in {schedule.Options.WarningTime.ToNaturalLanguage()}";
+            // Save delivery time
+            var previous = schedule.LastNotificationTime;
+            schedule.LastNotificationTime = now;
 
-            Notify(title, body);
+            try
+            {
+                State.Save();
+            }
+            catch (Exception e)
+            {
+                schedule.LastNotificationTime = previous;
+                Console.Error.WriteLine($"Could not save notification timestamp: {e.Message}");
+            }
         }
     }
 
-    public static void Notify(string title, string body)
-    {
-        foreach (var user in Platform.GetCurrentUsers())
-            Platform.SendNotification(user, title, body);
-    }
+    public static void Notify(string title, string body) => TryNotify(title, body);
 
+    private static bool TryNotify(string title, string body)
+    {
+        bool sent = false;
+        bool failed = false;
+
+        // Notify each user independently
+        try
+        {
+            foreach (var user in Platform.GetCurrentUsers())
+            {
+                try
+                {
+                    Platform.SendNotification(user, title, body);
+                    sent = true;
+                }
+                catch (Exception e)
+                {
+                    failed = true;
+                    Console.Error.WriteLine($"Notification failed for '{user}': {e.Message}");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine($"Could not enumerate notification users: {e.Message}");
+            return false;
+        }
+
+        return sent && !failed;
+    }
 }

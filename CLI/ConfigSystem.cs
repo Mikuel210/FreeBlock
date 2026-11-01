@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using static CLI.InvokeHelpers;
 using Core;
 using Daemon;
+using System.Text.Json;
 
 namespace CLI;
 
@@ -56,24 +57,16 @@ public static class ConfigSystem
         throw new NotImplementedException();
     }
 
-    public static async Task SetAll(ConfigSchema values)
-        => (await Invoke(nameof(CommunicationHub.SetConfigAsync), values)).Unwrap();
-
     public static async Task Set(string key, object? value)
     {
-        try
-        {
-            string schemaKey = _options[key].FieldName;
-            var values = await GetAll();
-            var field = values.GetType().GetField(schemaKey)!;
-
-            field.SetValue(values, value);
-            await SetAll(values);
-        }
-        catch
+        if (!_options.TryGetValue(key, out var option))
         {
             new Failure("Key not found in options").Unwrap();
+            return;
         }
+
+        // Patch only the requested public field, never overwrite a stale config snapshot
+        (await Invoke(nameof(CommunicationHub.SetConfigValueAsync), option.FieldName, JsonSerializer.SerializeToElement(value))).Unwrap();
     }
 
     public static IArgument GetArgument(string key)

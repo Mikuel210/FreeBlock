@@ -43,14 +43,12 @@ public static class LockCommands
     public static async Task<int> AddLock(AddLockArgument nameArgument, TimeSpanArgument timeArgument, EntriesArgument entriesArgument)
     {
         var time = timeArgument.Value!;
-        var unlockTime = DateTime.Now.Add(time);
-        var @lock = new Lock(nameArgument.Value!, entriesArgument.Value!, unlockTime);
 
         var prompt = $"This will block the provided entries for {time} and close all browsers and all blocked apps. Okay to continue?";
         if (!ConsoleUtils.PromptYesNo(prompt)) return 1;
 
-        (await Invoke(nameof(CommunicationHub.AddLockAsync), @lock)).Unwrap();
-        Console.WriteLine($"Added lock: {@lock.Name}");
+        (await Invoke(nameof(CommunicationHub.AddLockAsync), nameArgument.Value!, entriesArgument.Value!, time)).Unwrap();
+        Console.WriteLine($"Added lock: {nameArgument.Value}");
 
         return 0;
     }
@@ -59,7 +57,10 @@ public static class LockCommands
     {
         var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
         var @lock = lockArgument.Value!;
+
         bool changesMade = false;
+        List<Entry> addedEntries = [];
+        TimeSpan extension = TimeSpan.Zero;
 
         if (flags.OfType<LockAddEntriesFlag>().FirstOrDefault() is { } addEntriesFlag)
         {
@@ -72,20 +73,21 @@ public static class LockCommands
                 if (!ConsoleUtils.PromptClose(true)) return 1;
             }
 
-            @lock.Entries.AddRange(entries);
-            @lock.Entries = [.. @lock.Entries.Distinct()];
+            addedEntries = [.. entries.Distinct()];
             changesMade = true;
         }
 
         if (flags.OfType<LockExtendFlag>().FirstOrDefault() is { } extendFlag)
         {
             var timespan = extendFlag.Value!;
-            @lock.UnlockTime += timespan;
+            extension = timespan;
 
             changesMade = true;
         }
 
-        (await Invoke(nameof(CommunicationHub.EditLockAsync), @lock)).Unwrap();
+        // The daemon applies the delta to live state and its own clock, not a stale client expiry
+        (await Invoke(nameof(CommunicationHub.ExtendLockAsync), @lock.Name, addedEntries, extension)).Unwrap();
+
         if (changesMade) Console.WriteLine($"Updated lock: {@lock.Name}");
         else Console.WriteLine("No changes made");
 

@@ -162,7 +162,11 @@ public static class ConsoleUtils
         while (true)
         {
             Console.Write($"{message} ({(defaultValue ? 'Y' : 'y')}/{(defaultValue ? 'n' : 'N')}): ");
-            var input = Console.ReadLine()!.Trim().ToLowerInvariant();
+
+            var line = Console.ReadLine();
+            if (line == null) return false;
+
+            var input = line.Trim().ToLowerInvariant();
 
             if (input is "y" or "yes" || (input == "" && defaultValue))
             {

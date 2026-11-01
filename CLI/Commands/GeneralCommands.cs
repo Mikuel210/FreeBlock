@@ -223,9 +223,11 @@ public static class GeneralCommands
             foreach (var list in state.Lists.Where(e => e.IsActive(state)))
             {
                 if (!list.Entries.Contains(entry)) continue;
-                var listEntry = new Entry(EntryType.List, list.Name);
 
-                // TODO: check if you're unblocking that list as well
+                var listEntry = new Entry(EntryType.List, list.Name);
+                if (entries.Contains(listEntry)) continue;
+
+                // TODO: Check if you're effectively unblocking that list as well
                 ConsoleUtils.Warning($"Entry {entry.ToEntryString()} remains blocked by a list: {list.Name}");
                 writeLine = true;
             }

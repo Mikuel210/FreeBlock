@@ -72,12 +72,24 @@ public record VersionFlag() : SwitchFlag("Show the FreeBlock version", "--versio
 public record UninstallFlag() : SwitchFlag("Uninstall FreeBlock", "--uninstall");
 
 public record LockAddEntriesFlag() : EntriesFlag("Add entries to the lock", "--add-entries", "-a");
-public record LockExtendFlag() : TimeSpanFlag("Extend the lock by the provided amount of time (HH:MM[:SS])", "--extend", "-e");
+public record LockExtendFlag() : TimeSpanFlag($"Extend the lock by the provided amount of time ({Validator.DURATION_FORMAT})", "--extend", "-e");
 
 public record ScheduleStartTimeFlag() : TimeFlag("Change the start time of the schedule (HH:MM[:SS])", "--start-time", "-s");
 public record ScheduleEndTimeFlag() : TimeFlag("Change the end time of the schedule (HH:MM[:SS])", "--end-time", "-x");
 public record ScheduleDaysFlag() : DaysFlag("Change the days of the week to apply the schedule (MTWHFSU)", "--days", "-d");
 public record ScheduleEntriesFlag() : EntriesFlag("Change the entries of the schedule", "--entries", "-e");
-public record ScheduleWarningTimeFlag() : TimeSpanFlag("Change the warning period before the schedule starts (HH:MM[:SS])", "--warning-time", "-w");
+
+public record ScheduleWarningTimeFlag() : TimeSpanFlag($"Change the warning period before the schedule starts ({Validator.DURATION_FORMAT})", "--warning-time", "-w")
+{
+    public override async Task<bool> Validate(string input)
+    {
+        if (!await base.Validate(input)) return false;
+
+        if (Value <= TimeSpan.FromDays(1)) return true;
+
+        ConsoleUtils.Error("Warning time must be between zero and 24 hours");
+        return false;
+    }
+}
 
 #endregion

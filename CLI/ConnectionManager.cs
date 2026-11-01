@@ -22,7 +22,7 @@ public static class ConnectionManager
         catch
         {
             ConsoleUtils.Error("Connection refused. Make sure the FreeBlock daemon is running.");
-            Environment.Exit(0);
+            Environment.Exit(1);
         }
     }
 
@@ -87,6 +87,9 @@ public static class InvokeHelpers
 
     public static Task<Result> Invoke(string method, object? arg1, object? arg2)
         => ConnectionManager.SafeInvokeAsync(method, arg1, arg2);
+
+    public static Task<Result> Invoke(string method, object? arg1, object? arg2, object? arg3)
+        => ConnectionManager.SafeInvokeAsync(method, arg1, arg2, arg3);
 
     public static Task<Result<T>> Invoke<T>(string method)
         => ConnectionManager.SafeInvokeAsync<T>(method);

@@ -1,4 +1,5 @@
 using Core;
+using System.Globalization;
 using static CLI.InvokeHelpers;
 using Daemon;
 
@@ -6,6 +7,7 @@ namespace CLI;
 
 public static class Validator
 {
+    public const string DURATION_FORMAT = "HH:MM[:SS] or D.HH:MM[:SS]";
 
     private static string GetPosixName(IName argument)
         => argument.Name.StartsWith('-') ? $"[{argument.Name}]" : $"<{argument.Name}>";
@@ -46,7 +48,7 @@ public static class Validator
         }
 
         errors.ForEach(e => Console.WriteLine($"{GetPosixName(argument)}: {e}"));
-        return (true, entries);
+        return (errors.Count == 0, entries);
     }
 
     public static async Task<(bool, object?)> ValidateIName<T>(IName argument, string input) where T : IName
@@ -87,11 +89,11 @@ public static class Validator
 
     public static async Task<(bool, object?)> ValidateTimeSpan(IName argument, string input)
     {
-        var result = TimeSpan.TryParse(input, out var value);
+        var result = TryParseDuration(input, out var value);
 
         if (!result)
         {
-            Console.WriteLine($"{GetPosixName(argument)} must be a valid timespan (HH:MM[:SS])");
+            Console.WriteLine($"{GetPosixName(argument)} must be a valid timespan (DD.HH:MM:SS)");
             return (false, default);
         }
 
@@ -104,8 +106,30 @@ public static class Validator
         return (true, value);
     }
 
+    private static bool TryParseDuration(string input, out TimeSpan value)
+    {
+        var parts = input.Trim().Split(':');
+
+        // Normalize total hours before parsing so three-part inputs cannot be read as days.
+        if (parts.Length is 2 or 3
+            && long.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var hours)
+            && hours >= 24)
+        {
+            var normalized = FormattableString.Invariant($"{hours / 24}.{hours % 24:00}:{string.Join(':', parts.Skip(1))}");
+            return TimeSpan.TryParse(normalized, CultureInfo.InvariantCulture, out value);
+        }
+
+        return TimeSpan.TryParse(input, out value);
+    }
+
     public static async Task<(bool, object?)> ValidateDays(IName argument, string input)
     {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            Console.WriteLine($"{GetPosixName(argument)} must include at least one day");
+            return (false, null);
+        }
+
         if (input.Equals("everyday", StringComparison.InvariantCultureIgnoreCase))
             return (true, Enum.GetValues<DayOfWeek>());
 
@@ -138,7 +162,7 @@ public static class Validator
             });
         }
 
-        return (true, (DayOfWeek[])[.. days]);
+        return (true, (DayOfWeek[])[.. days.Distinct().Order()]);
     }
 
     public static async Task<(bool, object?)> ValidateTimeOnly(IName argument, string input)

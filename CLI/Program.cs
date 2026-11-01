@@ -144,7 +144,7 @@ CommandSystem.Register(new Command(
     Description: "Create a lock to block entries until a timer runs out",
     Arguments: [
         new AddLockArgument("name", "The name of the new lock"),
-        new TimeSpanArgument("time", "The duration of the lock (HH:MM[:SS])"),
+        new TimeSpanArgument("time", $"The duration of the lock ({Validator.DURATION_FORMAT})"),
         new EntriesArgument("entries", "The entries to lock")
     ],
     Flags: [],

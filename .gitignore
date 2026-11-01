@@ -1,7 +1,10 @@
-﻿Resources
+﻿Resources/*
+!Resources/run.sh
 Release
+Resources/uninstall.sh
+Resources/fastUpdate.sh
+Resources/test.sh
 Tests
-Release.zip
 AGENTS.md
 
 *.swp

@@ -31,37 +31,42 @@ FreeBlock is a cross-platform blocker that helps you focus by managing access to
 **Usage:** freeblock [-v | --version] [-h | --help] [--uninstall] \<command> [\<args>]
 
 **Manage blocking:**
-  - `freeblock status`          :  Show the current status of blocking
-  - `freeblock block`           :  Enable manual block for one or more entries
-  - `freeblock unblock`         :  Disable manual block for one or more entries
+
+- `freeblock status`: Show the current status of blocking
+- `freeblock block`: Enable manual block for one or more entries
+- `freeblock unblock`: Disable manual block for one or more entries
 
 **Manage lists:**
-  - `freeblock list status`     :  Show the current status of block lists
-  - `freeblock list add`        :  Create a new block list from a set of entries
-  - `freeblock list show`       :  Show the contents of a block list
-  - `freeblock list edit`       :  Edit the entries of a block list
-  - `freeblock list rename`     :  Rename a block list
-  - `freeblock list remove`     :  Remove a block list
+
+- `freeblock list status`: Show the current status of block lists
+- `freeblock list add`: Create a new block list from a set of entries
+- `freeblock list show`: Show the contents of a block list
+- `freeblock list edit`: Edit the entries of a block list
+- `freeblock list rename`: Rename a block list
+- `freeblock list remove`: Remove a block list
 
 **Manage locks**
-  - `freeblock lock status`     :  Show the current status of locks
-  - `freeblock lock add`        :  Create a lock to block entries until a timer runs out
-  - `freeblock lock show`       :  Show the properties of a lock
-  - `freeblock lock edit`       :  Edit the properties of a lock
-  - `freeblock lock rename`     :  Rename a lock
+
+- `freeblock lock status`: Show the current status of locks
+- `freeblock lock add`: Create a lock to block entries until a timer runs out
+- `freeblock lock show`: Show the properties of a lock
+- `freeblock lock edit`: Edit the properties of a lock
+- `freeblock lock rename`: Rename a lock
 
 **Manage schedules:**
-  - `freeblock schedule status` :  Show the current status of schedules
-  - `freeblock schedule add`    :  Create a schedule to enable entries automatically
-  - `freeblock schedule show`   :  Show the properties of a schedule
-  - `freeblock schedule edit`   :  Edit the properties of a schedule
-  - `freeblock schedule rename` :  Rename a schedule
-  - `freeblock schedule remove` :  Remove a schedule
+
+- `freeblock schedule status`: Show the current status of schedules
+- `freeblock schedule add`: Create a schedule to enable entries automatically
+- `freeblock schedule show`: Show the properties of a schedule
+- `freeblock schedule edit`: Edit the properties of a schedule
+- `freeblock schedule rename`: Rename a schedule
+- `freeblock schedule remove`: Remove a schedule
 
 **Configure FreeBlock**
-  - `freeblock config status`   :  List all configuration options and their values
-  - `freeblock config get`      :  Get the value of a configuration option
-  - `freeblock config set`      :  Set the value of a configuration option
+
+- `freeblock config status`: List all configuration options and their values
+- `freeblock config get`: Get the value of a configuration option
+- `freeblock config set`: Set the value of a configuration option
 
 See [TUTORIAL.md](https://github.com/Mikuel210/FreeBlock/blob/main/TUTORIAL.md) for a full guide on how to use FreeBlock.
 
@@ -108,6 +113,3 @@ If you spot any bugs, have any feature requests or just want to share your thoug
 ---
 
 Made with ❤️ for [Horizons](http://horizons.hackclub.com) thanks to [Hack Club](https://hackclub.com)
-
-> [!NOTE]
-> No AI was used in this project for any documentation or code except for install and migration scripts

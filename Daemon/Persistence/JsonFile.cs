@@ -18,6 +18,7 @@ public class JsonFile
         if (!Path.Exists(path))
         {
             if (directory != null) Directory.CreateDirectory(directory);
+
             File.WriteAllText(path, JsonConvert.SerializeObject(defaultValues));
         }
 
@@ -26,8 +27,32 @@ public class JsonFile
         try
         {
             values = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(path));
+
+            // Validate typed contents before accepting syntactically valid but unusable JSON
+            if (values != null)
+            {
+                _ = values.ToObject(defaultValues.GetType()) ?? throw new JsonSerializationException("Null document.");
+
+                foreach (var property in values.Properties())
+                {
+                    var expected = JObject.FromObject(defaultValues)[property.Name];
+
+                    if (expected != null && property.Value.Type == JTokenType.Null)
+                        throw new JsonSerializationException($"Null field: {property.Name}");
+
+                    if (expected?.Type == JTokenType.Array &&
+                        (property.Value is not JArray array || array.Any(item => item.Type == JTokenType.Null)))
+                        throw new JsonSerializationException($"Invalid collection: {property.Name}");
+                }
+
+                if (defaultValues is Core.ConfigSchema)
+                {
+                    var schema = values.ToObject<Core.ConfigSchema>()!;
+                    Config.ValidateWarningTime(schema.defaultWarningTime);
+                }
+            }
         }
-        catch (JsonException e)
+        catch (Exception e) when (e is JsonException or FormatException or ArgumentException or OverflowException)
         {
             // Back the corrupt file up and fall back to defaults
             string date = DateTime.Now.ToString("dd-MM-yyyy-HH.mm.ss", CultureInfo.InvariantCulture);

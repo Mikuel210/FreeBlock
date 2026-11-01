@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using System.Text.Json;
 using Core;
 using Lock = Core.Lock;
 
@@ -28,27 +29,35 @@ public class CommunicationHub : Hub
 
     public async Task AddListAsync(List list, string contents)
     {
+        var path = GetListPath(list.Name);
+
+        if (GetFromName(State.Lists, list.Name) != null)
+            throw new HubException("A list with this name already exists.");
+
+        WriteFile(path, contents);
         State.Lists.Add(list);
         State.Save();
-
-        WriteFile(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"), contents);
     }
 
     public async Task EditListAsync(List list, string contents)
     {
         var localList = GetLocalList(list);
+        var path = GetListPath(localList.Name);
         localList.Entries = list.Entries;
 
         await ApplyChanges();
-
-        WriteFile(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"), contents);
+        WriteFile(path, contents);
     }
 
     public async Task RenameListAsync(List list, string newName)
     {
         // Move list file
-        string oldPath = Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock");
-        string newPath = Path.Join(Platform.ListsDirectory, $"{newName}.freeblock");
+        var localList = GetLocalList(list);
+        string oldPath = GetListPath(localList.Name);
+        string newPath = GetListPath(newName);
+
+        if (GetFromName(State.Lists, newName) is { } existing && existing != localList)
+            throw new HubException("A list with this name already exists.");
 
         if (Path.Exists(oldPath))
             File.Move(oldPath, newPath);
@@ -61,11 +70,11 @@ public class CommunicationHub : Hub
 
         foreach (var entry in entries)
         {
-            if (entry.Type == EntryType.List && entry.Name == list.Name)
+            if (entry.Type == EntryType.List && string.Equals(entry.Name, localList.Name, StringComparison.OrdinalIgnoreCase))
                 entry.Name = newName;
         }
 
-        var paths = Directory.GetFiles(Platform.ListsDirectory);
+        var paths = Directory.GetFiles(Platform.ListsDirectory, "*.freeblock");
 
         foreach (var path in paths)
         {
@@ -73,46 +82,59 @@ public class CommunicationHub : Hub
 
             for (int i = 0; i < lines.Length; i++)
             {
-                if (lines[i].Trim() == $"@{list.Name}")
+                if (string.Equals(lines[i].Trim(), $"@{localList.Name}", StringComparison.OrdinalIgnoreCase))
                     lines[i] = $"@{newName}";
             }
 
-            WriteFile(path, string.Join('\n', lines));
+            WriteFile(GetListPath(Path.GetFileNameWithoutExtension(path)), string.Join('\n', lines));
         }
 
         // Change name
-        var localList = GetLocalList(list);
         localList.Name = newName;
-
         State.Save();
     }
 
     public async Task RemoveListAsync(List list)
     {
         var localList = GetLocalList(list);
-        State.Lists.Remove(localList);
+        var path = GetListPath(localList.Name);
 
-        File.Delete(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
+        File.Delete(path);
+        State.Lists.Remove(localList);
         await ApplyChanges();
     }
 
     public Task<string> GetListContentsAsync(List list)
-        => File.ReadAllTextAsync(Path.Join(Platform.ListsDirectory, $"{list.Name}.freeblock"));
+        => File.ReadAllTextAsync(GetListPath(GetFromName(State.Lists, list.Name)?.Name ?? list.Name));
 
     // Locks
 
-    public async Task AddLockAsync(Lock @lock)
+    public async Task AddLockAsync(string name, List<Entry> entries, TimeSpan duration)
     {
-        State.Locks.Add(@lock);
+        // Validate the lock
+        if (duration < TimeSpan.Zero || duration > TimeSpan.FromDays(365))
+            throw new HubException("Lock duration must be between zero and one year.");
+
+        if (GetFromName(State.Locks, name) != null)
+            throw new HubException("A lock with this name already exists.");
+
+        // Apply the lock
+        State.Locks.Add(new Lock(name, entries, DateTime.Now.Add(duration)));
         await ApplyChanges();
     }
 
-    public async Task EditLockAsync(Lock @lock)
+    public async Task ExtendLockAsync(string name, List<Entry> addedEntries, TimeSpan extension)
     {
-        var localLock = GetLocalLock(@lock);
-        localLock.Entries = @lock.Entries;
-        localLock.UnlockTime = @lock.UnlockTime;
+        // Validate the extension
+        if (extension < TimeSpan.Zero || extension > TimeSpan.FromDays(365))
+            throw new HubException("Lock extension must be between zero and one year.");
 
+        var local = GetFromName(State.Locks, name) ?? throw new HubException("Lock not found.");
+        var unlock = local.UnlockTime.Add(extension);
+
+        // Apply changes to the live lock
+        local.Entries = [.. local.Entries.Concat(addedEntries).Distinct()];
+        local.UnlockTime = unlock;
         await ApplyChanges();
     }
 
@@ -129,13 +151,18 @@ public class CommunicationHub : Hub
 
     public async Task AddScheduleAsync(Schedule schedule)
     {
+        Config.ValidateWarningTime(schedule.Options.WarningTime);
         State.Schedules.Add(schedule);
         await ApplyChanges();
     }
 
     public async Task EditScheduleAsync(Schedule schedule)
     {
+        Config.ValidateWarningTime(schedule.Options.WarningTime);
         var localSchedule = GetLocalSchedule(schedule);
+
+        if (!Schedule.PreservesProtectedWindow(localSchedule, schedule, DateTime.Now))
+            throw new HubException("Active or warned schedule entries and blocking window cannot be reduced.");
 
         localSchedule.Entries = schedule.Entries;
         localSchedule.StartTime = schedule.StartTime;
@@ -157,8 +184,15 @@ public class CommunicationHub : Hub
     public async Task RemoveScheduleAsync(Schedule schedule)
     {
         var localSchedule = GetLocalSchedule(schedule);
-        State.Schedules.Remove(localSchedule);
+        var requested = localSchedule.RemovalRequestTime;
+        var now = DateTime.Now;
 
+        bool removalWindow = requested.HasValue && now >= requested.Value.AddDays(1) && now < requested.Value.AddDays(2);
+
+        if ((localSchedule.ActiveAt(now) || localSchedule.InWarningPeriodAt(now)) && !removalWindow)
+            throw new HubException("Active or warned schedules require a removal request and the 24–48 hour removal window.");
+
+        State.Schedules.Remove(localSchedule);
         State.Save();
     }
 
@@ -178,16 +212,30 @@ public class CommunicationHub : Hub
 
     public async Task SetConfigAsync(ConfigSchema values)
     {
-        Config.SetAll(values);
-        Config.Save();
+        lock (ConfigMutationLock)
+        {
+            Config.SetAll(values);
+            Config.Save();
+        }
     }
 
+
+    public Task SetConfigValueAsync(string fieldName, JsonElement value)
+    {
+        lock (ConfigMutationLock) Config.SetPublicValue(fieldName, value);
+        return Task.CompletedTask;
+    }
+
+    private static readonly System.Threading.Lock ConfigMutationLock = new();
 
     // Uninstall
 
     public async Task UninstallAsync()
     {
         var hostsBackup = Config.Get<string>(nameof(ConfigSchema.hosts));
+
+        if (string.IsNullOrEmpty(hostsBackup))
+            throw new HubException("Uninstall failed: no hosts backup is available");
 
         try
         {
@@ -197,10 +245,11 @@ public class CommunicationHub : Hub
         catch (Exception e)
         {
             Console.WriteLine($"Failed to restore hosts file during uninstall: {e}");
-            throw new HubException("Uninstall failed: could not restore hosts file. Daemon remains running.");
+            throw new HubException("Uninstall failed: could not restore hosts file");
         }
 
         var (exitCodes, output) = await Platform.Uninstall.Run();
+
         if (exitCodes.Any(code => code != 0))
             throw new HubException($"Uninstall failed: {output.Trim()}");
     }
@@ -258,6 +307,31 @@ public class CommunicationHub : Hub
     {
         await Blocker.UpdateAsync();
         State.Save();
+    }
+
+    private static string GetListPath(string name)
+    {
+        // Validate the list name
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 128 ||
+            name.Any(c => !char.IsLetterOrDigit(c) && c != '-' && c != '_'))
+        {
+            throw new HubException("Invalid list name: use letters, digits, '-' or '_'.");
+        }
+
+        // Check the lists directory
+        var directory = new DirectoryInfo(Platform.ListsDirectory);
+
+        if (directory.Exists && (directory.Attributes & FileAttributes.ReparsePoint) != 0)
+            throw new HubException("The lists directory must not be a symbolic link.");
+
+        // Check the list file
+        var path = Path.Combine(directory.FullName, name + ".freeblock");
+        var file = new FileInfo(path);
+
+        if (file.LinkTarget != null || (file.Exists && (file.Attributes & FileAttributes.ReparsePoint) != 0))
+            throw new HubException("List files must not be symbolic links.");
+
+        return path;
     }
 
     private static void WriteFile(string path, string contents)

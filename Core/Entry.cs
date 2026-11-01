@@ -50,13 +50,20 @@ public class Entry(EntryType type, string name)
     public bool IsRecursive(Func<string, List?> listFromName, HashSet<string> visited)
     {
         if (Type != EntryType.List) return false;
-        if (visited.Contains(Name)) return true;
+
+        // Track the current path, not every node in the graph
+        if (visited.Contains(Name, StringComparer.OrdinalIgnoreCase))
+            return true;
 
         var list = listFromName(Name);
-        if (list is null) return false;
+
+        if (list is null)
+            return false;
 
         visited.Add(Name);
-        return list.Entries.Any(e => e.IsRecursive(listFromName, visited));
+
+        try { return list.Entries.Any(e => e.IsRecursive(listFromName, visited)); }
+        finally { visited.Remove(Name); }
     }
 
     public string[] GetBlockReasons(StateSnapshot state)

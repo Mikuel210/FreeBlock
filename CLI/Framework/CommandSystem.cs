@@ -21,7 +21,7 @@ public static class CommandSystem
 
         if (command == null)
         {
-            // Checked before the flag detection below, which would otherwise dereference a null command (C4).
+            // Checked before the flag detection below, which would otherwise dereference a null command
             Console.WriteLine($"Command not found: freeblock {string.Join(' ', args)}");
             Console.WriteLine("See: freeblock --help");
             return 1;
@@ -29,10 +29,8 @@ public static class CommandSystem
 
         // Find positional and flag tokens
         int flagStart = Array.FindIndex(args, a => a.StartsWith('-'));
-        if (flagStart < command.Arguments.Count) flagStart = -1;
-
-        var positional = flagStart == -1 ? args : args[.. flagStart];
-        var flagTokens = flagStart == -1 ? [] : args[flagStart ..];
+        var positional = flagStart == -1 ? args : args[..flagStart];
+        var flagTokens = flagStart == -1 ? [] : args[flagStart..];
 
         // Trigger help
         if (args.Any(e => e is "-?" or "-h" or "--help"))
@@ -63,11 +61,11 @@ public static class CommandSystem
         // Validate flags
         object?[] parameters = [.. command.Arguments];
 
+        (validateResult, var flags) = await ValidateFlags(command, [.. flagTokens]);
+        if (validateResult != 0) return validateResult;
+
         if (command.Flags.Count > 0)
         {
-            (validateResult, var flags) = await ValidateFlags(command, [.. flagTokens]);
-            if (validateResult != 0) return validateResult;
-
             parameters = [.. parameters, flags];
         }
 
@@ -91,18 +89,22 @@ public static class CommandSystem
             var argument = command.Arguments[i];
             if (argsList.Count <= i) goto Read;
 
-            Validate:
+        Validate:
             var result = await argument.Validate(argsList[i]);
 
             // Remove incorrect argument from array
             if (result) goto Continue;
+
             argsList.RemoveRange(i, argsList.Count - i);
 
-            Read:
+        Read:
             string space = (argsList.Count == 0 || argsList[0] == string.Empty) ? "" : " ";
             Console.Write($"freeblock {string.Join(" ", command.Route)}{space}{string.Join(" ", argsList)} <{argument.Name}>: ");
 
-            var input = Console.ReadLine()!.Trim();
+            var line = Console.ReadLine();
+            if (line == null) return 1;
+
+            var input = line.Trim();
             hasRead = true;
 
             // Check empty argument
@@ -116,7 +118,7 @@ public static class CommandSystem
             argsList.Add(input);
             goto Validate;
 
-            Continue:
+        Continue:
             i++;
         }
 
@@ -130,7 +132,7 @@ public static class CommandSystem
             return 1;
         }
 
-        End:
+    End:
         if (hasRead) Console.WriteLine();
         return 0;
     }
@@ -142,6 +144,7 @@ public static class CommandSystem
         foreach (var command in _commands)
         {
             if (args.Length < command.Route.Length) continue;
+
             if (command.IsRoot && args.Length != 0) continue;
 
             for (int i = 0; i < command.Route.Length; i++)
@@ -156,8 +159,8 @@ public static class CommandSystem
 
         if (matches.Count == 0)
         {
-            if (args[0].StartsWith('-'))
-                return _commands.Single(e => e.IsRoot);
+            if (args.FirstOrDefault()?.StartsWith('-') == true)
+                return _commands.SingleOrDefault(e => e.IsRoot);
 
             return null;
         }
@@ -193,7 +196,7 @@ public static class CommandSystem
                 if (i >= tokensList.Count || tokensList[i].StartsWith('-'))
                 {
                     Console.WriteLine($"[{flag.Name}] can't be empty");
-                    goto Continue;
+                    return (1, []);
                 }
 
                 token = tokensList[i];
@@ -201,7 +204,8 @@ public static class CommandSystem
                 // Single value
                 if (!flag.Params)
                 {
-                    if (!await flag.Validate(token)) goto Continue;
+                    if (!await flag.Validate(token))
+                        return (1, []);
 
                     flags.Add(flag);
                     goto Continue;
@@ -222,10 +226,12 @@ public static class CommandSystem
                     i++;
 
                     if (i >= tokensList.Count) break;
+
                     token = tokensList[i];
                 }
 
-                if (!await flag.Validate(string.Join(' ', tokens))) goto Continue;
+                if (!await flag.Validate(string.Join(' ', tokens)))
+                    return (1, []);
 
                 flags.Add(flag);
                 goto Continue;
@@ -235,7 +241,7 @@ public static class CommandSystem
             ConsoleUtils.Error($"Unknown flag: {token}");
             return (1, []);
 
-            Continue:
+        Continue:
             i++;
         }
 

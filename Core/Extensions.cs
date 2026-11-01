@@ -9,7 +9,7 @@ public static class Extensions
     public static List<Entry> ResolveLists(this List<Entry> entries, Func<string, List?> listFromName,
         HashSet<string>? visited = null, HashSet<Entry>? resolved = null, int depth = 0)
     {
-        visited ??= [];
+        visited ??= new(StringComparer.OrdinalIgnoreCase);
         resolved ??= [];
 
         if (depth > MAX_DEPTH)
@@ -25,15 +25,24 @@ public static class Extensions
                 continue;
             }
 
-            if (!visited.Add(entry.Name))
+            if (visited.Contains(entry.Name, StringComparer.OrdinalIgnoreCase))
                 throw new RecursiveListException(entry.Name);
 
-            var list = listFromName(entry.Name);
+            visited.Add(entry.Name);
 
-            if (list != null)
-                output.AddRange(ResolveLists(list.Entries, listFromName, visited, resolved, depth + 1));
+            try
+            {
+                var list = listFromName(entry.Name);
 
-            visited.Remove(entry.Name);
+                if (list != null)
+                {
+                    output.AddRange(ResolveLists(list.Entries, listFromName, visited, resolved, depth + 1));
+                }
+            }
+            finally
+            {
+                visited.Remove(entry.Name);
+            }
         }
 
         return output;
@@ -55,31 +64,28 @@ public static class Extensions
 
         if (line.StartsWith("@"))
         {
-            if (!lists.Select(e => e.Name).Contains(lineWithoutPrefix))
+            var referencedList = lists.FirstOrDefault(e => e.Name.Equals(lineWithoutPrefix, StringComparison.OrdinalIgnoreCase));
+
+            if (referencedList is null)
             {
                 error = $"Missing list entry was removed: {lineWithoutPrefix}";
                 return false;
             }
 
-            if (lineWithoutPrefix == list)
+            if (string.Equals(lineWithoutPrefix, list, StringComparison.OrdinalIgnoreCase))
             {
                 error = $"Redundant list entry was removed: {lineWithoutPrefix}";
                 return false;
             }
 
-            entry = new Entry(EntryType.List, lineWithoutPrefix);
+            entry = new Entry(EntryType.List, referencedList.Name);
 
             if (list != null)
             {
-                if (entry.IsRecursive(name => lists.FirstOrDefault(e => e.Name == name), [list]))
+                if (entry.IsRecursive(name => lists.FirstOrDefault(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase)),
+                    new(StringComparer.OrdinalIgnoreCase) { list }))
                 {
                     error = $"Recursive list entry was removed: {lineWithoutPrefix}";
-                    return false;
-                }
-
-                if (!lists.Any(e => e.Name.Equals(lineWithoutPrefix, StringComparison.OrdinalIgnoreCase)))
-                {
-                    error = $"Missing list entry was removed: {lineWithoutPrefix}";
                     return false;
                 }
             }
@@ -87,7 +93,16 @@ public static class Extensions
             return true;
         }
 
-        entry = new(EntryType.Website, line.SanitizeUrl());
+        try
+        {
+            entry = new(EntryType.Website, line.SanitizeUrl());
+        }
+        catch (ArgumentException)
+        {
+            error = $"Invalid website entry was removed: {line}";
+            return false;
+        }
+
         return true;
     }
 
@@ -95,17 +110,32 @@ public static class Extensions
     {
         url = url.Trim();
 
-        // Schemes are case-insensitive
-        if (url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) url = url[8..];
-        else if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)) url = url[7..];
+        // Parse the authority rather than emitting ports, credentials or fragments into hosts
+        if (url.Length == 0 || url.Any(char.IsWhiteSpace) || url.Contains('\\'))
+            throw new ArgumentException("Invalid website URL", nameof(url));
 
-        // Path and query are irrelevant to hosts-file blocking, but a trailing slash is common.
-        var noPath = url.IndexOfAny(['/', '?']);
-        if (noPath > 0) url = url[..noPath];
+        var absolute = url.Contains("://", StringComparison.Ordinal) ? url : "https://" + url;
 
-        if (url.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) url = url[4..];
+        if (!Uri.TryCreate(absolute, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || string.IsNullOrEmpty(uri.Host))
+        {
+            throw new ArgumentException("Invalid website URL", nameof(url));
+        }
 
-        return url;
+        var host = uri.IdnHost.TrimEnd('.').ToLowerInvariant();
+        if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) host = host[4..];
+
+        // DNS labels only: reject ambiguous empty labels and hosts-file metacharacters
+        if (host.Length == 0 || host.Length > 253 || host.Split('.').Any(label =>
+            label.Length == 0 || label.Length > 63 || !char.IsAsciiLetterOrDigit(label[0])
+            || !char.IsAsciiLetterOrDigit(label[^1])
+            || label.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '-')))
+        {
+            throw new ArgumentException("Invalid website hostname", nameof(url));
+        }
+
+        return host;
     }
 
     public static string GetDaysString(this DayOfWeek[] days)
@@ -138,12 +168,12 @@ public static class Extensions
     {
         List<string> parts = [];
 
+        if (timeSpan.Days > 0)
+            parts.Add($"{timeSpan.Days} {(timeSpan.Days == 1 ? "day" : "days")}");
         if (timeSpan.Hours > 0)
             parts.Add($"{timeSpan.Hours} {(timeSpan.Hours == 1 ? "hour" : "hours")}");
-
         if (timeSpan.Minutes > 0)
             parts.Add($"{timeSpan.Minutes} {(timeSpan.Minutes == 1 ? "minute" : "minutes")}");
-
         if (timeSpan.Seconds > 0)
             parts.Add($"{timeSpan.Seconds} {(timeSpan.Seconds == 1 ? "second" : "seconds")}");
 

@@ -7,6 +7,7 @@ namespace CLI;
 
 public static class ScheduleCommands
 {
+    internal static Func<DateTime> Now = () => DateTime.Now;
 
     public static async Task<int> ShowStatus()
     {
@@ -38,7 +39,7 @@ public static class ScheduleCommands
         var state = schedule.Active ? "Active" : (schedule.InWarningPeriod ? "Warning" : "Inactive");
 
         var removal = schedule.RemovalRequestTime == null ? "Not requested"
-            : $"{schedule.RemovalRequestTime} - {schedule.RemovalRequestTime + TimeSpan.FromDays(1)}";
+            : $"{schedule.RemovalRequestTime + TimeSpan.FromDays(1)} - {schedule.RemovalRequestTime + TimeSpan.FromDays(2)}";
 
         Dictionary<string, object?> values = new() {
             { "name", schedule.Name },
@@ -83,17 +84,20 @@ public static class ScheduleCommands
     public static async Task<int> EditSchedule(ScheduleArgument scheduleArgument, List<IFlag> flags)
     {
         var state = (await Invoke<StateSnapshot>(nameof(CommunicationHub.GetSnapshotAsync))).Unwrap();
-
-        // Values to modify
         var schedule = scheduleArgument.Value!;
         var previousDuration = schedule.Duration;
+        var now = Now();
+
+        // Values to modify
         var start = schedule.StartTime;
         var end = schedule.EndTime;
         var entries = schedule.Entries;
-        var options = schedule.Options;
+        var options = new ScheduleOptions { WarningTime = schedule.Options.WarningTime };
         List<DayOfWeek> days = [.. schedule.Days];
 
-        bool activeOrWarning = schedule.Active || schedule.InWarningPeriod;
+        bool originallyActive = schedule.ActiveAt(now);
+        bool originallyWarning = schedule.InWarningPeriodAt(now);
+        bool activeOrWarning = originallyActive || originallyWarning;
         bool changesMade = false;
 
         // A new start or end time can make the window longer even when one moves in the shrinking
@@ -110,10 +114,11 @@ public static class ScheduleCommands
             changesMade = true;
         }
 
-        if (Schedule.GetDuration(start, end) < previousDuration)
+        if (activeOrWarning && Schedule.GetDuration(start, end) < previousDuration)
         {
             if (schedule.Active)
                 ConsoleUtils.Error("Making a schedule shorter while it's active is not allowed");
+
             if (schedule.InWarningPeriod)
                 ConsoleUtils.Error("Making a schedule shorter while in the warning period is not allowed");
 
@@ -143,6 +148,7 @@ public static class ScheduleCommands
 
                 if (schedule.Active)
                     ConsoleUtils.Error($"Removing days of the week while a schedule is active is not allowed");
+
                 if (schedule.InWarningPeriod)
                     ConsoleUtils.Error($"Removing days of the week while in the warning period is not allowed");
 
@@ -156,21 +162,16 @@ public static class ScheduleCommands
             changesMade = changesMade || !days.SequenceEqual(previousDays);
         }
 
-        if (schedule.Active && !Schedule.IsActive(start, end, [.. days], DateTime.Now))
+        if (originallyActive && !Schedule.IsActive(start, end, [.. days], now))
         {
             ConsoleUtils.Error("Moving a schedule to unblock it while it's active is not allowed");
             return 1;
         }
 
-        bool endsEarlier = end.ToTimeSpan() > DateTime.Now.TimeOfDay && end < schedule.EndTime;
-
-        if (activeOrWarning && endsEarlier)
+        if (activeOrWarning && !Schedule.PreservesProtectedWindow(schedule,
+            new Schedule { StartTime = start, EndTime = end, Days = [.. days], Entries = schedule.Entries }, now))
         {
-            if (schedule.Active)
-                ConsoleUtils.Error("Making a schedule end earlier while it's active is not allowed");
-            if (schedule.InWarningPeriod)
-                ConsoleUtils.Error("Making a schedule end earlier while in the warning period is not allowed");
-
+            ConsoleUtils.Error("Moving or shortening an active or warned schedule window is not allowed");
             return 1;
         }
 
@@ -182,6 +183,7 @@ public static class ScheduleCommands
             {
                 if (schedule.Active)
                     ConsoleUtils.Error("Decreasing the warning time while the schedule is active is not allowed");
+
                 if (schedule.InWarningPeriod)
                     ConsoleUtils.Error("Decreasing the warning time while in the warning period is not allowed");
 
@@ -200,9 +202,9 @@ public static class ScheduleCommands
             var previousEntries = entries;
             entries = entriesFlag.Value!;
 
-            bool active = Schedule.IsActive(start, end, [.. days]);
+            bool active = Schedule.IsActive(start, end, [.. days], now);
 
-            if (active)
+            if (activeOrWarning)
             {
                 bool showWarning = false;
 
@@ -218,6 +220,7 @@ public static class ScheduleCommands
                 {
                     if (schedule.Active)
                         ConsoleUtils.Warning("Removing entries while the schedule is active is not allowed and they have been added back");
+
                     if (schedule.InWarningPeriod)
                         ConsoleUtils.Warning("Removing entries while in the warning period is not allowed and they have been added back");
 
@@ -227,6 +230,7 @@ public static class ScheduleCommands
 
             // Prompt close
             if (active && !entries.All(e => e.IsActive(state)) && !ConsoleUtils.PromptClose(true)) return 1;
+
             changesMade = changesMade || !entries.SequenceEqual(previousEntries);
         }
 
@@ -238,7 +242,9 @@ public static class ScheduleCommands
             StartTime = start,
             EndTime = end,
             Days = [.. days],
-            Options = options
+            Options = options,
+            RemovalRequestTime = schedule.RemovalRequestTime,
+            LastNotificationTime = schedule.LastNotificationTime
         };
 
         (await Invoke(nameof(CommunicationHub.EditScheduleAsync), updatedSchedule)).Unwrap();
@@ -268,7 +274,7 @@ public static class ScheduleCommands
 
         if (schedule.Active || inWarningPeriod)
         {
-            var now = DateTime.Now;
+            var now = Now();
             bool inWindow = false;
             bool requested = false;
 
