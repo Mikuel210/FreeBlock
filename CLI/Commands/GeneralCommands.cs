@@ -57,7 +57,7 @@ public static class GeneralCommands
         bool showSchedules = schedules.Length > 0;
         bool printedSection = false;
 
-        if (!showActiveEntries && !showLocks && !showSchedules)
+        if (!showActiveEntries && !showLists && !showLocks && !showSchedules)
         {
             Console.WriteLine("No blocking is taking place");
             return 0;

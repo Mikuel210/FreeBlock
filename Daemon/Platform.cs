@@ -131,8 +131,7 @@ public static class Platform
                 Console.Error.WriteLine($"Linux notification failed for user '{user}': {output.Trim()}");
         };
 
-        // Run cleanup outside this service, after the hub has acknowledged the request.
-        // Stopping ourselves inline terminates both the RPC and the remaining commands.
+        // Run cleanup outside this service, after the hub has acknowledged the request
         Uninstall = new([
             new (
                 "systemd-run",
